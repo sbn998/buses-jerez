@@ -1,0 +1,837 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Línea 1 (ESTEVE - SAN TELMO)</name>
+    <description/>
+    <Style id="icon-1532-3949AB-labelson">
+      <IconStyle>
+        <color>ffab4939</color>
+        <scale>1</scale>
+        <Icon>
+          <href>https://www.gstatic.com/mapspro/images/stock/503-wht-blank_maps.png</href>
+        </Icon>
+      </IconStyle>
+    </Style>
+    <Style id="icon-1532-C2185B-labelson">
+      <IconStyle>
+        <color>ff5b18c2</color>
+        <scale>1</scale>
+        <Icon>
+          <href>https://www.gstatic.com/mapspro/images/stock/503-wht-blank_maps.png</href>
+        </Icon>
+      </IconStyle>
+    </Style>
+    <Style id="line-0288D1-6231-nodesc-normal">
+      <LineStyle>
+        <color>ffd18802</color>
+        <width>6.231</width>
+      </LineStyle>
+      <BalloonStyle>
+        <text><![CDATA[<h3>$[name]</h3>]]></text>
+      </BalloonStyle>
+    </Style>
+    <Style id="line-0288D1-6231-nodesc-highlight">
+      <LineStyle>
+        <color>ffd18802</color>
+        <width>9.3465</width>
+      </LineStyle>
+      <BalloonStyle>
+        <text><![CDATA[<h3>$[name]</h3>]]></text>
+      </BalloonStyle>
+    </Style>
+    <StyleMap id="line-0288D1-6231-nodesc">
+      <Pair>
+        <key>normal</key>
+        <styleUrl>#line-0288D1-6231-nodesc-normal</styleUrl>
+      </Pair>
+      <Pair>
+        <key>highlight</key>
+        <styleUrl>#line-0288D1-6231-nodesc-highlight</styleUrl>
+      </Pair>
+    </StyleMap>
+    <Folder>
+      <name>Linea1.xlsx</name>
+      <Placemark>
+        <name>Plaza Esteve</name>
+        <description><![CDATA[TRANSBORDO: 2-3-4-6-10-11-14<br>COD: 343<br>SENTIDO: Esteve<br>LATITUD: 36.681745<br>LONGITUD: -6.136679]]></description>
+        <styleUrl>#icon-1532-3949AB-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="TRANSBORDO">
+            <value>2-3-4-6-10-11-14</value>
+          </Data>
+          <Data name="COD">
+            <value>343.0</value>
+          </Data>
+          <Data name="SENTIDO">
+            <value>Esteve</value>
+          </Data>
+          <Data name="LATITUD">
+            <value>36.681745</value>
+          </Data>
+          <Data name="LONGITUD">
+            <value>-6.136679</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            -6.136679,36.681745,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Villamarta</name>
+        <description><![CDATA[TRANSBORDO: 5-6-11-12-14<br>COD: 453<br>SENTIDO: Única<br>LATITUD: 36.683371<br>LONGITUD: -6.135114]]></description>
+        <styleUrl>#icon-1532-C2185B-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="TRANSBORDO">
+            <value>5-6-11-12-14</value>
+          </Data>
+          <Data name="COD">
+            <value>453.0</value>
+          </Data>
+          <Data name="SENTIDO">
+            <value>Única</value>
+          </Data>
+          <Data name="LATITUD">
+            <value>36.683371</value>
+          </Data>
+          <Data name="LONGITUD">
+            <value>-6.135114</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            -6.135114,36.683371,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Arcos</name>
+        <description><![CDATA[TRANSBORDO: 5-6-11-12-14<br>COD: 30<br>SENTIDO: Al final de C/ Arcos<br>LATITUD: 36.684118<br>LONGITUD: -6.130268]]></description>
+        <styleUrl>#icon-1532-C2185B-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="TRANSBORDO">
+            <value>5-6-11-12-14</value>
+          </Data>
+          <Data name="COD">
+            <value>30.0</value>
+          </Data>
+          <Data name="SENTIDO">
+            <value>Al final de C/ Arcos</value>
+          </Data>
+          <Data name="LATITUD">
+            <value>36.684118</value>
+          </Data>
+          <Data name="LONGITUD">
+            <value>-6.130268</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            -6.130268,36.684118,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Pio XII</name>
+        <description><![CDATA[TRANSBORDO: 6-14<br>COD: 335<br>SENTIDO: De C/ Arcos a C/ Medina. Única<br>LATITUD: 36.683279<br>LONGITUD: -6.13001]]></description>
+        <styleUrl>#icon-1532-C2185B-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="TRANSBORDO">
+            <value>6-14</value>
+          </Data>
+          <Data name="COD">
+            <value>335.0</value>
+          </Data>
+          <Data name="SENTIDO">
+            <value>De C/ Arcos a C/ Medina. Única</value>
+          </Data>
+          <Data name="LATITUD">
+            <value>36.683279</value>
+          </Data>
+          <Data name="LONGITUD">
+            <value>-6.13001</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            -6.13001,36.683279,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Descalzos</name>
+        <description><![CDATA[TRANSBORDO: NO<br>COD: 138<br>SENTIDO: Dirección San Telmo<br>LATITUD: 36.681233<br>LONGITUD: -6.130769]]></description>
+        <styleUrl>#icon-1532-C2185B-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="TRANSBORDO">
+            <value>NO</value>
+          </Data>
+          <Data name="COD">
+            <value>138.0</value>
+          </Data>
+          <Data name="SENTIDO">
+            <value>Dirección San Telmo</value>
+          </Data>
+          <Data name="LATITUD">
+            <value>36.681233</value>
+          </Data>
+          <Data name="LONGITUD">
+            <value>-6.130769</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            -6.130769,36.681233,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Madre de Dios</name>
+        <description><![CDATA[TRANSBORDO: 15<br>COD: 280<br>SENTIDO: a San Telmo<br>LATITUD: 36.677499<br>LONGITUD: -6.130718]]></description>
+        <styleUrl>#icon-1532-C2185B-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="TRANSBORDO">
+            <value>15</value>
+          </Data>
+          <Data name="COD">
+            <value>280.0</value>
+          </Data>
+          <Data name="SENTIDO">
+            <value>a San Telmo</value>
+          </Data>
+          <Data name="LATITUD">
+            <value>36.677499</value>
+          </Data>
+          <Data name="LONGITUD">
+            <value>-6.130718</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            -6.130718,36.677499,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>M. Dios</name>
+        <description><![CDATA[TRANSBORDO: NO<br>COD: 276<br>SENTIDO: Hacia San Telmo<br>LATITUD: 36.677589<br>LONGITUD: -6.130859]]></description>
+        <styleUrl>#icon-1532-C2185B-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="TRANSBORDO">
+            <value>NO</value>
+          </Data>
+          <Data name="COD">
+            <value>276.0</value>
+          </Data>
+          <Data name="SENTIDO">
+            <value>Hacia San Telmo</value>
+          </Data>
+          <Data name="LATITUD">
+            <value>36.677589</value>
+          </Data>
+          <Data name="LONGITUD">
+            <value>-6.130859</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            -6.130859,36.677589,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Ermita San Telmo</name>
+        <description><![CDATA[TRANSBORDO: 15<br>COD: 165<br>SENTIDO: Sentido San Telmo<br>LATITUD: 36.677143<br>LONGITUD: -6.13105]]></description>
+        <styleUrl>#icon-1532-C2185B-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="TRANSBORDO">
+            <value>15</value>
+          </Data>
+          <Data name="COD">
+            <value>165.0</value>
+          </Data>
+          <Data name="SENTIDO">
+            <value>Sentido San Telmo</value>
+          </Data>
+          <Data name="LATITUD">
+            <value>36.677143</value>
+          </Data>
+          <Data name="LONGITUD">
+            <value>-6.13105</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            -6.13105,36.677143,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Bajada San Telmo</name>
+        <description><![CDATA[TRANSBORDO: 15<br>COD: 68<br>SENTIDO: Hacia Balneario<br>LATITUD: 36.673447<br>LONGITUD: -6.132787]]></description>
+        <styleUrl>#icon-1532-C2185B-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="TRANSBORDO">
+            <value>15</value>
+          </Data>
+          <Data name="COD">
+            <value>68.0</value>
+          </Data>
+          <Data name="SENTIDO">
+            <value>Hacia Balneario</value>
+          </Data>
+          <Data name="LATITUD">
+            <value>36.673447</value>
+          </Data>
+          <Data name="LONGITUD">
+            <value>-6.132787</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            -6.132787,36.673447,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Cerrofruto</name>
+        <description><![CDATA[TRANSBORDO: 15<br>COD: 120<br>SENTIDO: Hacia Balneario<br>LATITUD: 36.670634<br>LONGITUD: -6.132542]]></description>
+        <styleUrl>#icon-1532-C2185B-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="TRANSBORDO">
+            <value>15</value>
+          </Data>
+          <Data name="COD">
+            <value>120.0</value>
+          </Data>
+          <Data name="SENTIDO">
+            <value>Hacia Balneario</value>
+          </Data>
+          <Data name="LATITUD">
+            <value>36.670634</value>
+          </Data>
+          <Data name="LONGITUD">
+            <value>-6.132542</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            -6.132542,36.670634,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Constitución</name>
+        <description><![CDATA[TRANSBORDO: 8-13<br>COD: 128<br>SENTIDO: Única<br>LATITUD: 36.66918<br>LONGITUD: -6.127323]]></description>
+        <styleUrl>#icon-1532-C2185B-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="TRANSBORDO">
+            <value>8-13</value>
+          </Data>
+          <Data name="COD">
+            <value>128.0</value>
+          </Data>
+          <Data name="SENTIDO">
+            <value>Única</value>
+          </Data>
+          <Data name="LATITUD">
+            <value>36.66918</value>
+          </Data>
+          <Data name="LONGITUD">
+            <value>-6.127323</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            -6.127323,36.66918,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Nueva Cartuja</name>
+        <description><![CDATA[TRANSBORDO: 8-9-13<br>COD: 307<br>SENTIDO: Única<br>LATITUD: 36.670288<br>LONGITUD: -6.12515]]></description>
+        <styleUrl>#icon-1532-C2185B-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="TRANSBORDO">
+            <value>8-9-13</value>
+          </Data>
+          <Data name="COD">
+            <value>307.0</value>
+          </Data>
+          <Data name="SENTIDO">
+            <value>Única</value>
+          </Data>
+          <Data name="LATITUD">
+            <value>36.670288</value>
+          </Data>
+          <Data name="LONGITUD">
+            <value>-6.12515</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            -6.12515,36.670288,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Solidaridad</name>
+        <description><![CDATA[TRANSBORDO: 8-9-13<br>COD: 418<br>SENTIDO: Única<br>LATITUD: 36.669752<br>LONGITUD: -6.127838]]></description>
+        <styleUrl>#icon-1532-C2185B-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="TRANSBORDO">
+            <value>8-9-13</value>
+          </Data>
+          <Data name="COD">
+            <value>418.0</value>
+          </Data>
+          <Data name="SENTIDO">
+            <value>Única</value>
+          </Data>
+          <Data name="LATITUD">
+            <value>36.669752</value>
+          </Data>
+          <Data name="LONGITUD">
+            <value>-6.127838</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            -6.127838,36.669752,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Vallesequillo II</name>
+        <description><![CDATA[TRANSBORDO: 8-9-13<br>COD: 449<br>SENTIDO: Única<br>LATITUD: 36.670307<br>LONGITUD: -6.130214]]></description>
+        <styleUrl>#icon-1532-C2185B-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="TRANSBORDO">
+            <value>8-9-13</value>
+          </Data>
+          <Data name="COD">
+            <value>449.0</value>
+          </Data>
+          <Data name="SENTIDO">
+            <value>Única</value>
+          </Data>
+          <Data name="LATITUD">
+            <value>36.670307</value>
+          </Data>
+          <Data name="LONGITUD">
+            <value>-6.130214</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            -6.130214,36.670307,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Moreno Mendoza</name>
+        <description><![CDATA[TRANSBORDO: 8-9-13<br>COD: 302<br>SENTIDO: Subiendo<br>LATITUD: 36.673056<br>LONGITUD: -6.128556]]></description>
+        <styleUrl>#icon-1532-C2185B-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="TRANSBORDO">
+            <value>8-9-13</value>
+          </Data>
+          <Data name="COD">
+            <value>302.0</value>
+          </Data>
+          <Data name="SENTIDO">
+            <value>Subiendo</value>
+          </Data>
+          <Data name="LATITUD">
+            <value>36.673056</value>
+          </Data>
+          <Data name="LONGITUD">
+            <value>-6.128556</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            -6.128556,36.673056,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Amistad</name>
+        <description><![CDATA[TRANSBORDO: NO<br>COD: 19<br>SENTIDO: Única<br>LATITUD: 36.671888<br>LONGITUD: -6.131729]]></description>
+        <styleUrl>#icon-1532-C2185B-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="TRANSBORDO">
+            <value>NO</value>
+          </Data>
+          <Data name="COD">
+            <value>19.0</value>
+          </Data>
+          <Data name="SENTIDO">
+            <value>Única</value>
+          </Data>
+          <Data name="LATITUD">
+            <value>36.671888</value>
+          </Data>
+          <Data name="LONGITUD">
+            <value>-6.131729</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            -6.131729,36.671888,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>San Telmo</name>
+        <description><![CDATA[TRANSBORDO: NO<br>COD: 401<br>SENTIDO: Única<br>LATITUD: 36.673788<br>LONGITUD: -6.132285]]></description>
+        <styleUrl>#icon-1532-C2185B-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="TRANSBORDO">
+            <value>NO</value>
+          </Data>
+          <Data name="COD">
+            <value>401.0</value>
+          </Data>
+          <Data name="SENTIDO">
+            <value>Única</value>
+          </Data>
+          <Data name="LATITUD">
+            <value>36.673788</value>
+          </Data>
+          <Data name="LONGITUD">
+            <value>-6.132285</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            -6.132285,36.673788,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Ermita San Telmo</name>
+        <description><![CDATA[TRANSBORDO: 8-15<br>COD: 164<br>SENTIDO: Sentido Madre de Dios<br>LATITUD: 36.67687<br>LONGITUD: -6.131399]]></description>
+        <styleUrl>#icon-1532-C2185B-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="TRANSBORDO">
+            <value>8-15</value>
+          </Data>
+          <Data name="COD">
+            <value>164.0</value>
+          </Data>
+          <Data name="SENTIDO">
+            <value>Sentido Madre de Dios</value>
+          </Data>
+          <Data name="LATITUD">
+            <value>36.67687</value>
+          </Data>
+          <Data name="LONGITUD">
+            <value>-6.131399</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            -6.131399,36.67687,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>M. Dios</name>
+        <description><![CDATA[TRANSBORDO: NO<br>COD: 277<br>SENTIDO: Hacia Centro<br>LATITUD: 36.678609<br>LONGITUD: -6.129891]]></description>
+        <styleUrl>#icon-1532-C2185B-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="TRANSBORDO">
+            <value>NO</value>
+          </Data>
+          <Data name="COD">
+            <value>277.0</value>
+          </Data>
+          <Data name="SENTIDO">
+            <value>Hacia Centro</value>
+          </Data>
+          <Data name="LATITUD">
+            <value>36.678609</value>
+          </Data>
+          <Data name="LONGITUD">
+            <value>-6.129891</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            -6.129891,36.678609,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Diego F. Herrera</name>
+        <description><![CDATA[TRANSBORDO: 2-3-4-5-8-9-10-11-12-15-18<br>COD: 139<br>SENTIDO: Sentido Angustias<br>LATITUD: 36.680544<br>LONGITUD: -6.131088]]></description>
+        <styleUrl>#icon-1532-C2185B-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="TRANSBORDO">
+            <value>2-3-4-5-8-9-10-11-12-15-18</value>
+          </Data>
+          <Data name="COD">
+            <value>139.0</value>
+          </Data>
+          <Data name="SENTIDO">
+            <value>Sentido Angustias</value>
+          </Data>
+          <Data name="LATITUD">
+            <value>36.680544</value>
+          </Data>
+          <Data name="LONGITUD">
+            <value>-6.131088</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            -6.131088,36.680544,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Angustias Canal Sur</name>
+        <description><![CDATA[TRANSBORDO: 2-3-4-5-6-10-12-18<br>COD: 130<br>SENTIDO: Única<br>LATITUD: 36.680865<br>LONGITUD: -6.134338]]></description>
+        <styleUrl>#icon-1532-C2185B-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="TRANSBORDO">
+            <value>2-3-4-5-6-10-12-18</value>
+          </Data>
+          <Data name="COD">
+            <value>130.0</value>
+          </Data>
+          <Data name="SENTIDO">
+            <value>Única</value>
+          </Data>
+          <Data name="LATITUD">
+            <value>36.680865</value>
+          </Data>
+          <Data name="LONGITUD">
+            <value>-6.134338</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            -6.134338,36.680865,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>Recorrido</name>
+      <Placemark>
+        <name>Línea 1</name>
+        <styleUrl>#line-0288D1-6231-nodesc</styleUrl>
+        <LineString>
+          <tessellate>1</tessellate>
+          <coordinates>
+            -6.136679,36.681745,0
+            -6.1366446,36.6820966,0
+            -6.136622,36.6822832,0
+            -6.1366182,36.6824611,0
+            -6.1364788,36.6826741,0
+            -6.1363031,36.682873,0
+            -6.1361804,36.6830198,0
+            -6.1360955,36.6830744,0
+            -6.136,36.6830989,0
+            -6.1355597,36.6832489,0
+            -6.135114,36.683371,0
+            -6.134462,36.683514,0
+            -6.1338609,36.6836614,0
+            -6.1330455,36.6838249,0
+            -6.1323738,36.6838787,0
+            -6.1320352,36.6839132,0
+            -6.1316953,36.6839466,0
+            -6.1308105,36.6840413,0
+            -6.1296186,36.6842125,0
+            -6.1296401,36.6840641,0
+            -6.1297099,36.6839135,0
+            -6.1298803,36.6835974,0
+            -6.1300024,36.6833135,0
+            -6.1301204,36.6831054,0
+            -6.1302344,36.6829242,0
+            -6.1303753,36.6826548,0
+            -6.130667,36.6821223,0
+            -6.131184,36.6813983,0
+            -6.1308155,36.6812694,0
+            -6.1304832,36.6811395,0
+            -6.1298358,36.6808848,0
+            -6.1296984,36.6808499,0
+            -6.1295342,36.680815,0
+            -6.1290991,36.6807844,0
+            -6.1287904,36.6807734,0
+            -6.1289526,36.6803622,0
+            -6.1292221,36.6799166,0
+            -6.1294011,36.6797459,0
+            -6.1295184,36.6795645,0
+            -6.1295783,36.6794456,0
+            -6.1296544,36.679317,0
+            -6.1297704,36.6791221,0
+            -6.1298728,36.6789429,0
+            -6.1299018,36.6788319,0
+            -6.1299093,36.6787231,0
+            -6.1299355,36.67861,0
+            -6.1299967,36.6784926,0
+            -6.1303661,36.6779542,0
+            -6.1306133,36.6775959,0
+            -6.1309249,36.6772118,0
+            -6.1310843,36.6770498,0
+            -6.1312411,36.6769093,0
+            -6.1314687,36.6767659,0
+            -6.1317226,36.6766485,0
+            -6.1318891,36.6764796,0
+            -6.1319991,36.6762763,0
+            -6.132029,36.675992,0
+            -6.1319932,36.6757357,0
+            -6.1320021,36.6755727,0
+            -6.1320714,36.6754235,0
+            -6.1321855,36.6752769,0
+            -6.1323345,36.6751733,0
+            -6.1324093,36.6751143,0
+            -6.1325377,36.6750466,0
+            -6.132661,36.6749095,0
+            -6.1327467,36.6747681,0
+            -6.1327989,36.6746243,0
+            -6.1327921,36.6744998,0
+            -6.1327397,36.6740257,0
+            -6.1326921,36.6733176,0
+            -6.1326468,36.6721093,0
+            -6.1325383,36.6705759,0
+            -6.1324723,36.6698305,0
+            -6.1324581,36.6694944,0
+            -6.132459,36.6693038,0
+            -6.1324841,36.6691798,0
+            -6.1325644,36.6690672,0
+            -6.1326931,36.6690206,0
+            -6.1328164,36.6689546,0
+            -6.1328673,36.6688136,0
+            -6.1328351,36.6685994,0
+            -6.1326842,36.6685337,0
+            -6.1325038,36.6685111,0
+            -6.1323631,36.668528,0
+            -6.1322546,36.668588,0
+            -6.1321931,36.6686813,0
+            -6.1321128,36.6687509,0
+            -6.1315363,36.668955,0
+            -6.1310644,36.6691365,0
+            -6.1307875,36.6692068,0
+            -6.1305361,36.6692266,0
+            -6.1300577,36.6691496,0
+            -6.129582,36.6690618,0
+            -6.129197,36.6689903,0
+            -6.1289428,36.6689663,0
+            -6.1286885,36.668965,0
+            -6.1283418,36.668998,0
+            -6.1279682,36.6690515,0
+            -6.1270634,36.6691835,0
+            -6.1263897,36.6692818,0
+            -6.125958,36.669357,0
+            -6.1257449,36.6694031,0
+            -6.125505,36.6694622,0
+            -6.1251447,36.6695584,0
+            -6.1248371,36.6696549,0
+            -6.1246686,36.6697139,0
+            -6.1245362,36.6697955,0
+            -6.1243252,36.6699264,0
+            -6.1242036,36.6700403,0
+            -6.1241464,36.6701811,0
+            -6.1241351,36.6703006,0
+            -6.1241708,36.6703781,0
+            -6.1242845,36.6704392,0
+            -6.124421,36.6704595,0
+            -6.1246177,36.6703902,0
+            -6.1248237,36.6703081,0
+            -6.125143,36.6702069,0
+            -6.1257936,36.6700712,0
+            -6.1271214,36.6698558,0
+            -6.1277385,36.6697721,0
+            -6.1283502,36.6696648,0
+            -6.1287527,36.6696059,0
+            -6.1289526,36.6696087,0
+            -6.1291284,36.6696459,0
+            -6.1296119,36.669947,0
+            -6.1305323,36.6705318,0
+            -6.1305715,36.670601,0
+            -6.1302466,36.6709622,0
+            -6.130048,36.6711654,0
+            -6.1298534,36.6713708,0
+            -6.1294778,36.6718115,0
+            -6.1292732,36.672049,0
+            -6.1291454,36.6721785,0
+            -6.129019,36.6723263,0
+            -6.1287923,36.6725908,0
+            -6.1286259,36.6728068,0
+            -6.1284441,36.6730546,0
+            -6.1282191,36.673378,0
+            -6.1280415,36.6734585,0
+            -6.1279554,36.6735552,0
+            -6.1279754,36.6736682,0
+            -6.1281303,36.6737462,0
+            -6.1282935,36.6737163,0
+            -6.1283161,36.6735637,0
+            -6.1283261,36.673438,0
+            -6.1286455,36.6729803,0
+            -6.1294329,36.6719695,0
+            -6.129795,36.6715242,0
+            -6.1299761,36.6713027,0
+            -6.1300827,36.6711881,0
+            -6.1302028,36.6710736,0
+            -6.1306239,36.6712866,0
+            -6.1310557,36.671426,0
+            -6.1313173,36.671472,0
+            -6.1315154,36.6714824,0
+            -6.131727,36.6715122,0
+            -6.1317431,36.67178,0
+            -6.1317592,36.6720553,0
+            -6.1317928,36.6725005,0
+            -6.1318082,36.6731701,0
+            -6.1318749,36.6737587,0
+            -6.1321934,36.6737746,0
+            -6.1324425,36.6737578,0
+            -6.1326634,36.6737443,0
+            -6.132699,36.6738354,0
+            -6.1327026,36.6739437,0
+            -6.1327404,36.6743766,0
+            -6.1327701,36.6745499,0
+            -6.1327567,36.6746517,0
+            -6.1327152,36.6747879,0
+            -6.1326214,36.6749262,0
+            -6.1325075,36.6750237,0
+            -6.1321274,36.6752878,0
+            -6.1319916,36.6755275,0
+            -6.1319617,36.6757111,0
+            -6.1319749,36.6758481,0
+            -6.1319948,36.6759818,0
+            -6.1319927,36.6761506,0
+            -6.131953,36.6763162,0
+            -6.1318658,36.6764656,0
+            -6.1317597,36.6765785,0
+            -6.1315849,36.6766924,0
+            -6.131394,36.6767892,0
+            -6.1311186,36.6769742,0
+            -6.1306107,36.6775474,0
+            -6.1303038,36.6779755,0
+            -6.1299794,36.6784256,0
+            -6.1297582,36.6788787,0
+            -6.1295885,36.6792429,0
+            -6.1292194,36.679838,0
+            -6.1308373,36.6805099,0
+            -6.1312493,36.680678,0
+            -6.1316752,36.6806545,0
+            -6.1319686,36.6807159,0
+            -6.1324855,36.6808413,0
+            -6.1329531,36.6809341,0
+            -6.1330529,36.6808299,0
+            -6.1331778,36.6805713,0
+            -6.1343542,36.6807859,0
+          </coordinates>
+        </LineString>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>Capa sin nombre</name>
+    </Folder>
+  </Document>
+</kml>

@@ -28,3 +28,5 @@ Las piezas se van añadiendo conforme se construyen. Cada archivo empieza con un
 | `src/comujesa/endpoints.ts` | Guarda todas las direcciones de la web de Comujesa en un solo sitio. |
 | `src/comujesa/parseStops.ts` | Lee la lista de paradas (con su código) de una línea. |
 | `src/comujesa/parseTimes.ts` | Lee las horas de paso de una parada: laborables, sábados y festivos. |
+| `src/comujesa/parseLinePage.ts` | Lee la página de una línea: sus sentidos ("hacia San Telmo") y el enlace a su mapa oficial. |
+| `src/comujesa/parseKml.ts` | Lee el mapa oficial de una línea: ubicación y código de cada parada y el dibujo del recorrido. |
