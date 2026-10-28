@@ -8,6 +8,8 @@
 !/tsconfig.json
 !/assets/
 !/src/
+!/docs/
+!/README.md
 
 # Secretos y claves: nunca, aunque estén dentro de una carpeta permitida.
 .env

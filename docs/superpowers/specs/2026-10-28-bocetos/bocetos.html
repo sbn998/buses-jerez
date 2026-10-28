@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",system-ui,sans-serif;background:#e9ecf1;width:430px;color:#1b1f27}
+.phone{width:430px;min-height:900px;background:#f6f7fa;padding:0 0 24px}
+.status{height:34px;display:flex;justify-content:space-between;align-items:center;padding:0 22px;font-size:14px;font-weight:600}
+.top{padding:10px 20px 14px}
+.top h1{font-size:26px;font-weight:700}
+.top p{font-size:14px;color:#5b6472;margin-top:2px}
+.card{background:#fff;margin:0 16px 14px;border-radius:18px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+.label{font-size:12px;font-weight:600;color:#6b7482;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.field{display:flex;align-items:center;gap:10px;border:1.5px solid #dde1e8;border-radius:12px;padding:11px 12px;font-size:16px;margin-bottom:12px;background:#fff}
+.field .chev{margin-left:auto;color:#8a93a1}
+.row{display:flex;gap:10px}.row .field{flex:1}
+.badge{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:28px;padding:0 8px;border-radius:8px;font-weight:800;font-size:15px}
+.l1{background:#FFDE4D;color:#1b1f27}.l18{background:#00A6D1;color:#fff}.l4{background:#CE003B;color:#fff}
+.btn{background:#1d4ed8;color:#fff;text-align:center;border-radius:12px;padding:13px;font-weight:700;font-size:16px}
+.big{display:flex;align-items:baseline;gap:12px}
+.big .t{font-size:46px;font-weight:800;letter-spacing:-.02em}
+.big .m{font-size:18px;font-weight:700;color:#15803d}
+.sub{font-size:14px;color:#5b6472;margin-top:2px}
+.list{margin-top:12px;border-top:1px solid #eef0f4}
+.li{display:flex;justify-content:space-between;padding:11px 2px;border-bottom:1px solid #eef0f4;font-size:17px}
+.li span:last-child{color:#6b7482;font-size:15px}
+.chips{display:flex;gap:8px;margin-bottom:12px}
+.chip{padding:8px 14px;border-radius:20px;font-size:14px;font-weight:600;background:#eef0f4;color:#3a4250}
+.chip.on{background:#1b1f27;color:#fff}
+.tabs{display:flex;background:#eef0f4;border-radius:12px;padding:4px;margin-bottom:14px}
+.tab{flex:1;text-align:center;padding:8px 0;font-size:14px;font-weight:600;border-radius:9px;color:#5b6472}
+.tab.on{background:#fff;color:#1b1f27;box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.g{text-align:center;padding:9px 0;border-radius:9px;font-size:15px;background:#f3f4f7;font-variant-numeric:tabular-nums}
+.g.past{color:#b2b8c2;background:#fafbfc}
+.g.next{background:#1d4ed8;color:#fff;font-weight:700}
+.hour{font-size:12px;font-weight:700;color:#8a93a1;margin:10px 0 6px}
+.res{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid #eef0f4}
+.res:last-child{border:0}
+.res .info{flex:1}.res .n{font-weight:700;font-size:16px}
+.res .d{font-size:14px;color:#5b6472;margin-top:2px}
+.walk{font-size:13px;font-weight:700;color:#15803d;white-space:nowrap}
+.nav{position:fixed;bottom:0;left:0;width:430px;height:64px;background:#fff;border-top:1px solid #e3e6eb;display:flex}
+.nav div{flex:1;text-align:center;font-size:11px;font-weight:600;color:#8a93a1;padding-top:10px}
+.nav div b{display:block;font-size:20px;margin-bottom:2px}
+.nav .on{color:#1d4ed8}
+.note{margin:0 16px;font-size:12px;color:#8a93a1;text-align:center}
+.mapbox{height:150px;border-radius:12px;background:linear-gradient(135deg,#dfe8dc,#e9eef2);position:relative;overflow:hidden;margin-bottom:6px}
+.mapbox .road{position:absolute;background:#fff}
+.pin{position:absolute;width:16px;height:16px;border-radius:50%;border:3px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.screen{display:none}
+</style></head>
+<body>
+
+<!-- A: Próximo bus -->
+<div class="phone screen" id="a">
+  <div class="status"><span>10:05</span><span>5G ▮▮▮</span></div>
+  <div class="top"><h1>Próximo bus</h1><p>Elige línea, parada y cuándo sales</p></div>
+  <div class="card">
+    <div class="label">Línea</div>
+    <div class="field"><span class="badge l1">1</span> Esteve – San Telmo <span class="chev">▾</span></div>
+    <div class="label">Parada</div>
+    <div class="field">📍 Villamarta <span style="color:#8a93a1;font-size:13px">· 120 m</span><span class="chev">▾</span></div>
+    <div class="label">Cuándo</div>
+    <div class="chips"><span class="chip on">Ahora</span><span class="chip">Elegir día y hora</span></div>
+  </div>
+  <div class="card">
+    <div class="sub">Siguiente bus en Villamarta · hoy (laborable)</div>
+    <div class="big"><span class="t">10:14</span><span class="m">en 9 min</span></div>
+    <div class="sub">Sentido San Telmo</div>
+    <div class="list">
+      <div class="li"><span>10:37</span><span>en 32 min</span></div>
+      <div class="li"><span>11:01</span><span>en 56 min</span></div>
+      <div class="li"><span>11:24</span><span>en 1 h 19 min</span></div>
+      <div class="li"><span>11:48</span><span>en 1 h 43 min</span></div>
+    </div>
+  </div>
+  <div class="note">Horario oficial Comujesa · actualizado 28 oct 2026</div>
+  <div class="nav"><div class="on"><b>🕑</b>Próximo bus</div><div><b>🔎</b>Cómo llego</div><div><b>📋</b>Horarios</div></div>
+</div>
+
+<!-- B: Cómo llego -->
+<div class="phone screen" id="b">
+  <div class="status"><span>10:05</span><span>5G ▮▮▮</span></div>
+  <div class="top"><h1>¿A dónde vas?</h1><p>Escribe un lugar o una calle</p></div>
+  <div class="card">
+    <div class="field" style="margin-bottom:0;border-color:#1d4ed8">🔎 Luz Shopping<span class="chev">✕</span></div>
+  </div>
+  <div class="card">
+    <div class="mapbox">
+      <div class="road" style="left:0;top:70px;width:100%;height:10px;transform:rotate(-8deg)"></div>
+      <div class="road" style="left:200px;top:0;width:10px;height:100%"></div>
+      <div class="pin" style="left:300px;top:40px;background:#dc2626;width:22px;height:22px"></div>
+      <div class="pin" style="left:270px;top:62px;background:#00A6D1"></div>
+      <div class="pin" style="left:90px;top:96px;background:#1d4ed8"></div>
+    </div>
+    <div class="sub" style="margin-bottom:4px">🔴 destino · 🔵 tú</div>
+    <div class="label" style="margin-top:10px">Líneas que te dejan cerca</div>
+    <div class="res"><span class="badge l18">18</span><div class="info"><div class="n">Angustias – Luz Shopping</div><div class="d">Bájate en <b>Luz Shopping</b> · a 60 m del destino</div><div class="d">Súbete en <b>Av. Europa</b> · a 250 m de ti · próximo 10:21</div></div></div>
+    <div class="res"><span class="badge l4">4</span><div class="info"><div class="n">Esteve – Hipercor</div><div class="d">Bájate en <b>Hipercor</b> · a 900 m del destino</div><div class="d">Súbete en <b>Arcos</b> · a 400 m de ti · próximo 10:30</div></div></div>
+  </div>
+  <div class="note">Boceto: nombres de paradas de la línea 18 y 4 inventados</div>
+  <div class="nav"><div><b>🕑</b>Próximo bus</div><div class="on"><b>🔎</b>Cómo llego</div><div><b>📋</b>Horarios</div></div>
+</div>
+
+<!-- C: Horario completo -->
+<div class="phone screen" id="c">
+  <div class="status"><span>10:05</span><span>5G ▮▮▮</span></div>
+  <div class="top"><h1>Horario completo</h1><p>Todas las horas de paso de una parada</p></div>
+  <div class="card">
+    <div class="row">
+      <div class="field"><span class="badge l1">1</span><span class="chev">▾</span></div>
+      <div class="field" style="flex:3">📍 Villamarta<span class="chev">▾</span></div>
+    </div>
+    <div class="tabs"><div class="tab on">Laborables</div><div class="tab">Sábados</div><div class="tab">Festivos</div></div>
+    <div class="hour">MAÑANA</div>
+    <div class="grid">
+      <div class="g past">7:29</div><div class="g past">7:46</div><div class="g past">8:07</div><div class="g past">8:28</div><div class="g past">8:48</div>
+      <div class="g past">9:09</div><div class="g past">9:30</div><div class="g past">9:50</div><div class="g next">10:14</div><div class="g">10:37</div>
+      <div class="g">11:01</div><div class="g">11:24</div><div class="g">11:48</div><div class="g">12:11</div><div class="g">12:35</div>
+      <div class="g">12:57</div><div class="g">13:22</div><div class="g">13:44</div>
+    </div>
+    <div class="hour">TARDE Y NOCHE</div>
+    <div class="grid">
+      <div class="g">14:09</div><div class="g">14:54</div><div class="g">15:39</div><div class="g">16:24</div><div class="g">17:09</div>
+      <div class="g">17:54</div><div class="g">18:39</div><div class="g">19:24</div><div class="g">20:09</div><div class="g">20:54</div>
+      <div class="g">21:39</div>
+    </div>
+  </div>
+  <div class="note">Horas reales de la línea 1 en Villamarta (invierno 2026/27)</div>
+  <div class="nav"><div><b>🕑</b>Próximo bus</div><div><b>🔎</b>Cómo llego</div><div class="on"><b>📋</b>Horarios</div></div>
+</div>
+
+<!-- D: Cerca de mí -->
+<div class="phone screen" id="d">
+  <div class="status"><span>10:05</span><span>5G ▮▮▮</span></div>
+  <div class="top"><h1>Cerca de mí</h1><p>Paradas a menos de 500 m</p></div>
+  <div class="card" style="padding:10px">
+    <div class="mapbox" style="height:190px;margin:0">
+      <div class="road" style="left:0;top:95px;width:100%;height:12px;transform:rotate(-6deg)"></div>
+      <div class="road" style="left:150px;top:0;width:12px;height:100%;transform:rotate(10deg)"></div>
+      <div class="road" style="left:290px;top:0;width:9px;height:100%"></div>
+      <div style="position:absolute;left:170px;top:70px;width:90px;height:90px;border-radius:50%;background:rgba(29,78,216,.12)"></div>
+      <div class="pin" style="left:207px;top:107px;background:#1d4ed8"></div>
+      <div class="pin" style="left:140px;top:84px;background:#1b1f27;width:20px;height:20px;border-radius:6px"></div>
+      <div class="pin" style="left:282px;top:60px;background:#1b1f27;width:20px;height:20px;border-radius:6px"></div>
+      <div class="pin" style="left:250px;top:150px;background:#1b1f27;width:20px;height:20px;border-radius:6px"></div>
+      <div style="position:absolute;left:118px;top:60px;font-size:11px;font-weight:700;background:#fff;padding:1px 5px;border-radius:5px">Villamarta</div>
+      <div style="position:absolute;left:262px;top:36px;font-size:11px;font-weight:700;background:#fff;padding:1px 5px;border-radius:5px">Pl. Esteve</div>
+      <div style="position:absolute;left:228px;top:173px;font-size:11px;font-weight:700;background:#fff;padding:1px 5px;border-radius:5px">Arcos</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="res" style="display:block">
+      <div style="display:flex;justify-content:space-between"><span class="n">Villamarta</span><span class="walk">120 m · 2 min</span></div>
+      <div class="li" style="font-size:15px;align-items:center"><span><span class="badge l1">1</span>&nbsp; hacia San Telmo</span><span><b style="color:#1b1f27">10:14</b> · 9 min</span></div>
+      <div class="li" style="font-size:15px;align-items:center"><span><span class="badge" style="background:#991B4D;color:#fff">5</span>&nbsp; hacia Guadalcacín</span><span><b style="color:#1b1f27">10:22</b> · 17 min</span></div>
+      <div class="li" style="font-size:15px;align-items:center;border:0"><span><span class="badge" style="background:#E19FC4">11</span>&nbsp; hacia La Marquesa</span><span><b style="color:#1b1f27">10:40</b> · 35 min</span></div>
+    </div>
+    <div class="res" style="display:block">
+      <div style="display:flex;justify-content:space-between"><span class="n">Plaza Esteve</span><span class="walk">260 m · 4 min</span></div>
+      <div class="li" style="font-size:15px;align-items:center;border:0"><span><span class="badge l1">1</span> <span class="badge" style="background:#FA2F1C;color:#fff">2</span> <span class="badge" style="background:#EFA93E">3</span> <span class="badge l4">4</span> <span class="badge" style="background:#D2A638">6</span> <span style="color:#6b7482">+3</span></span><span style="color:#1d4ed8;font-weight:600">Ver ›</span></div>
+    </div>
+    <div class="res" style="display:block">
+      <div style="display:flex;justify-content:space-between"><span class="n">Arcos</span><span class="walk">340 m · 5 min</span></div>
+      <div class="li" style="font-size:15px;align-items:center;border:0"><span><span class="badge l1">1</span> <span class="badge" style="background:#991B4D;color:#fff">5</span> <span class="badge" style="background:#D2A638">6</span> <span class="badge" style="background:#E19FC4">11</span> <span class="badge" style="background:#B6582A;color:#fff">12</span></span><span style="color:#1d4ed8;font-weight:600">Ver ›</span></div>
+    </div>
+  </div>
+  <div class="note">Boceto: solo la hora de la línea 1 es real</div>
+  <div class="nav"><div class="on"><b>📍</b>Cerca de mí</div><div><b>📋</b>Horarios</div><div><b>🔎</b>Cómo llego</div></div>
+</div>
+
+<!-- E: Horarios unido -->
+<div class="phone screen" id="e">
+  <div class="status"><span>10:05</span><span>5G ▮▮▮</span></div>
+  <div class="top"><h1>Horarios</h1></div>
+  <div class="card">
+    <div class="row">
+      <div class="field"><span class="badge l1">1</span><span class="chev">▾</span></div>
+      <div class="field" style="flex:3">📍 Villamarta<span class="chev">▾</span></div>
+    </div>
+    <div class="chips" style="margin-bottom:0"><span class="chip on">Ahora</span><span class="chip">📅 Elegir día y hora</span></div>
+  </div>
+  <div class="card">
+    <div class="sub">Próximo bus · hacia San Telmo</div>
+    <div class="big"><span class="t">10:14</span><span class="m">en 9 min</span></div>
+    <div class="sub">Después: 10:37 · 11:01 · 11:24</div>
+  </div>
+  <div class="card">
+    <div class="tabs"><div class="tab on">Laborables</div><div class="tab">Sábados</div><div class="tab">Festivos</div></div>
+    <div class="grid">
+      <div class="g past">7:29</div><div class="g past">7:46</div><div class="g past">8:07</div><div class="g past">8:28</div><div class="g past">8:48</div>
+      <div class="g past">9:09</div><div class="g past">9:30</div><div class="g past">9:50</div><div class="g next">10:14</div><div class="g">10:37</div>
+      <div class="g">11:01</div><div class="g">11:24</div><div class="g">11:48</div><div class="g">12:11</div><div class="g">12:35</div>
+      <div class="g">12:57</div><div class="g">13:22</div><div class="g">13:44</div><div class="g">14:09</div><div class="g">14:54</div>
+      <div class="g">15:39</div><div class="g">16:24</div><div class="g">17:09</div><div class="g">17:54</div><div class="g">18:39</div>
+      <div class="g">19:24</div><div class="g">20:09</div><div class="g">20:54</div><div class="g">21:39</div>
+    </div>
+  </div>
+  <div class="note">Horas reales · actualizado 28 oct 2026</div>
+  <div class="nav"><div><b>📍</b>Cerca de mí</div><div class="on"><b>📋</b>Horarios</div><div><b>🔎</b>Cómo llego</div></div>
+</div>
+
+<script>document.getElementById(location.hash.slice(1)||'a').style.display='block'</script>
+</body></html>
