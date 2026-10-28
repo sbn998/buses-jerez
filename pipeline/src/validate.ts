@@ -7,15 +7,18 @@
  *
  * Devuelve la lista de errores encontrados. Vacía = todo correcto.
  */
-import type { Dataset } from '../../src/data/schema';
+import type { Dataset, DayType } from '../../src/data/schema';
 
 const EXPECTED_LINES = Array.from({ length: 18 }, (_, i) => String(i + 1));
+const DAY_TYPES: DayType[] = ['lab', 'sab', 'fes'];
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 // Zona de Jerez, incluidas las pedanías (Guadalcacín, Nueva Jarilla, El Portal...).
 const LAT = [36.55, 36.85];
 const LON = [-6.35, -5.85];
-// Bajadas máximas permitidas respecto a la versión anterior (decisión del plan).
+// Cambios máximos permitidos respecto a la versión anterior (decisión del plan).
+// Un cambio mayor suele ser señal de que algo se descargó o se leyó mal.
 const MAX_TIMES_DROP = 0.2;
+const MAX_TIMES_RISE = 0.3;
 const MAX_STOPS_DROP = 0.1;
 
 const countTimes = (ds: Dataset) =>
@@ -24,6 +27,10 @@ const countTimes = (ds: Dataset) =>
       sum + Object.values(line.timesByStop).reduce((s, t) => s + t.lab.length + t.sab.length + t.fes.length, 0),
     0,
   );
+
+/** ¿Tiene esta línea alguna hora en este tipo de día? */
+const lineHasDay = (ds: Dataset, lineId: string, day: DayType) =>
+  Object.values(ds.lines.find((l) => l.id === lineId)?.timesByStop ?? {}).some((t) => t[day].length > 0);
 
 export function validate(ds: Dataset, previous: Dataset | null): string[] {
   const errors: string[] = [];
@@ -34,15 +41,19 @@ export function validate(ds: Dataset, previous: Dataset | null): string[] {
   for (const id of ids) if (!EXPECTED_LINES.includes(id)) errors.push(`unexpected line ${id}`);
 
   for (const line of ds.lines) {
-    // 2. Cada línea tiene paradas y algún sentido.
+    // 2. Cada línea tiene paradas, algún sentido y el dibujo de su recorrido
+    //    (si falta, la página de la línea o su mapa oficial no se leyeron bien).
     if (line.stopCodes.length < 2) errors.push(`line ${line.id} has ${line.stopCodes.length} stops`);
     if (line.directions.length < 1) errors.push(`line ${line.id} has no directions`);
+    if (line.shapes.length < 1) errors.push(`line ${line.id} has no map route`);
 
     for (const code of line.stopCodes) {
-      // 3. Cada parada tiene ubicación dentro de Jerez.
+      // 3. Cada parada tiene una ubicación válida dentro de Jerez.
       const stop = ds.stops[code];
       if (!stop) errors.push(`stop ${code} (line ${line.id}) has no coordinates`);
-      else if (stop.lat < LAT[0] || stop.lat > LAT[1] || stop.lon < LON[0] || stop.lon > LON[1]) {
+      else if (!Number.isFinite(stop.lat) || !Number.isFinite(stop.lon)) {
+        errors.push(`stop ${code} (line ${line.id}) has invalid coordinates: ${stop.lat},${stop.lon}`);
+      } else if (stop.lat < LAT[0] || stop.lat > LAT[1] || stop.lon < LON[0] || stop.lon > LON[1]) {
         errors.push(`stop ${code} (line ${line.id}) is outside Jerez: ${stop.lat},${stop.lon}`);
       }
 
@@ -53,28 +64,58 @@ export function validate(ds: Dataset, previous: Dataset | null): string[] {
         continue;
       }
 
-      // 5. Las horas tienen formato HH:MM y van en orden.
-      for (const day of ['lab', 'sab', 'fes'] as const) {
+      // 5. Las horas tienen formato HH:MM, van en orden y no se repiten.
+      for (const day of DAY_TYPES) {
         const list = times[day];
         list.forEach((t, i) => {
           if (!TIME.test(t)) errors.push(`stop ${code} (line ${line.id}) ${day} bad time "${t}"`);
           else if (i > 0 && t < list[i - 1]) errors.push(`stop ${code} (line ${line.id}) ${day} times out of order at "${t}"`);
+          else if (i > 0 && t === list[i - 1]) errors.push(`stop ${code} (line ${line.id}) ${day} duplicate time "${t}"`);
         });
       }
     }
   }
 
-  // 6. No hay caídas bruscas respecto a la versión anterior (señal de que algo se descargó mal).
+  // 6. Dos paradas distintas en el mismo punto exacto suelen significar que a una
+  //    se le ha copiado la ubicación de otra. Se acepta solo si todas las ubicaciones
+  //    salen del mapa oficial de Comujesa (que a veces lo hace así con paradas de
+  //    aceras opuestas) o si alguna es una corrección manual del autor.
+  const byPoint = new Map<string, string[]>();
+  for (const stop of Object.values(ds.stops)) {
+    const key = `${stop.lat},${stop.lon}`;
+    byPoint.set(key, [...(byPoint.get(key) ?? []), stop.code]);
+  }
+  for (const codes of byPoint.values()) {
+    const sources = codes.map((c) => ds.stops[c].coordSource);
+    const official = sources.every((src) => src === 'kml' || src === 'name-match');
+    if (codes.length > 1 && !official && !sources.includes('override')) {
+      errors.push(`stops ${codes.join(', ')} share the same coordinates`);
+    }
+  }
+
+  // 7. Comparación con la versión anterior.
   if (previous) {
     const prevTimes = countTimes(previous);
     const nowTimes = countTimes(ds);
     if (prevTimes > 0 && nowTimes < prevTimes * (1 - MAX_TIMES_DROP)) {
       errors.push(`times dropped from ${prevTimes} to ${nowTimes}`);
     }
+    if (prevTimes > 0 && nowTimes > prevTimes * (1 + MAX_TIMES_RISE)) {
+      errors.push(`times rose from ${prevTimes} to ${nowTimes}`);
+    }
     const prevStops = Object.keys(previous.stops).length;
     const nowStops = Object.keys(ds.stops).length;
     if (prevStops > 0 && nowStops < prevStops * (1 - MAX_STOPS_DROP)) {
       errors.push(`stops dropped from ${prevStops} to ${nowStops}`);
+    }
+    // Si una línea tenía horario un tipo de día (por ejemplo, sábados) y ahora no
+    // tiene ninguno, lo más probable es que esa parte no se haya leído bien.
+    for (const line of previous.lines) {
+      for (const day of DAY_TYPES) {
+        if (lineHasDay(previous, line.id, day) && !lineHasDay(ds, line.id, day)) {
+          errors.push(`line ${line.id} had ${day} times and now has none`);
+        }
+      }
     }
   }
 

@@ -19,10 +19,18 @@ interface OverpassResponse {
   elements: { lat: number; lon: number; tags?: Record<string, string> }[];
 }
 
+/**
+ * Solo se usa la etiqueta `ref`. Si un mismo código aparece en varias paradas de
+ * OSM (por ejemplo, una urbana y otra interurbana), no se sabe cuál es la buena,
+ * así que ese código se descarta.
+ */
 export function parseOverpass(json: string): OsmStop[] {
   const data = JSON.parse(json) as OverpassResponse;
-  return data.elements.flatMap((e) => {
-    const ref = e.tags?.ref ?? e.tags?.local_ref;
+  const stops = data.elements.flatMap((e) => {
+    const ref = e.tags?.ref;
     return ref ? [{ ref, name: e.tags?.name ?? '', lat: e.lat, lon: e.lon }] : [];
   });
+  const count = new Map<string, number>();
+  for (const s of stops) count.set(s.ref, (count.get(s.ref) ?? 0) + 1);
+  return stops.filter((s) => count.get(s.ref) === 1);
 }

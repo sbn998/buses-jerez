@@ -10,6 +10,8 @@ import type { DayType, StopTimes } from '../../../src/data/schema';
 
 const LABELS: Record<string, DayType> = {
   laborales: 'lab',
+  // Por si algún día Comujesa corrige la errata.
+  laborables: 'lab',
   'sábados': 'sab',
   'domingos y festivos': 'fes',
 };

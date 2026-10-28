@@ -19,6 +19,11 @@ describe('parseTimes', () => {
     expect(t.fes[9]).toBe('21:40');
   });
 
+  it('also accepts the correct spelling "Laborables"', () => {
+    const html = "<div><STRONG>Laborables</STRONG><br /><div>07:00<br />08:00</div></div>";
+    expect(parseTimes(html).lab).toEqual(['07:00', '08:00']);
+  });
+
   it('returns empty lists for an empty page', () => {
     expect(parseTimes('<html></html>')).toEqual({ lab: [], sab: [], fes: [] });
   });

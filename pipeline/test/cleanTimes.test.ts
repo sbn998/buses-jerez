@@ -23,6 +23,12 @@ describe('cleanTimes', () => {
     expect(r.issues).toEqual(['reordered']);
   });
 
+  it('removes repeated times', () => {
+    const r = cleanTimes(['07:00', '07:00', '08:00']);
+    expect(r.times).toEqual(['07:00', '08:00']);
+    expect(r.issues).toEqual(['removed duplicate 07:00']);
+  });
+
   it('sorts times that are slightly out of order', () => {
     const r = cleanTimes(['14:27', '16:30', '15:50', '16:35']);
     expect(r.times).toEqual(['14:27', '15:50', '16:30', '16:35']);

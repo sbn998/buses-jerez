@@ -29,6 +29,8 @@ export interface Stop {
   lon: number;
   /** De dónde salen las coordenadas: mapa oficial, nombre parecido, OpenStreetMap o corrección manual. */
   coordSource: 'kml' | 'name-match' | 'osm' | 'override';
+  /** true si la ubicación es aproximada (el autor aún no la ha comprobado). La app debe indicarlo. */
+  approximate?: boolean;
 }
 
 /** Un sentido de la línea ("hacia San Telmo") con sus paradas en orden. */

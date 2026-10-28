@@ -25,11 +25,11 @@ import { buildHolidays, type LocalHolidays, type NagerHoliday } from './holidays
 import { createClient } from './http';
 import { makeManifest } from './manifest';
 import { OVERPASS_QUERY, OVERPASS_URL, parseOverpass } from './osm';
+import { fetchPrevious } from './previous';
 import { buildTrips } from './trips';
 import { cleanTimes } from './cleanTimes';
 import { validate } from './validate';
 
-const PUBLISHED_DATA_URL = 'https://sbn998.github.io/buses-jerez/data.json';
 const OUT_DIR = new URL('../out/', import.meta.url);
 const LINE_IDS = Array.from({ length: 18 }, (_, i) => String(i + 1));
 const DAY_TYPES: DayType[] = ['lab', 'sab', 'fes'];
@@ -58,18 +58,6 @@ async function downloadLine(
   }
   console.log(`línea ${id}: ${options.length} paradas, mapa ${kml ? 'sí' : 'NO'}`);
   return { id, options, page, kml, timesByStop };
-}
-
-/** Descarga la versión publicada. Si no existe todavía (primera vez) o falla, devuelve null. */
-async function fetchPrevious(warnings: string[]): Promise<Dataset | null> {
-  try {
-    const res = await fetch(PUBLISHED_DATA_URL);
-    if (res.ok) return (await res.json()) as Dataset;
-    warnings.push(`no previous dataset (HTTP ${res.status})`);
-  } catch (err) {
-    warnings.push(`no previous dataset (${String(err)})`);
-  }
-  return null;
 }
 
 async function main() {
@@ -115,7 +103,9 @@ async function main() {
     stops: assembled.stops,
     holidays: holidays.holidays,
   };
-  const errors = validate(dataset, await fetchPrevious(warnings));
+  const prev = await fetchPrevious();
+  if (prev.ok && prev.previous === null) warnings.push('no previous dataset (first run)');
+  const errors = prev.ok ? validate(dataset, prev.previous) : [prev.error];
   report(dataset, warnings, errors);
 
   rmSync(OUT_DIR, { recursive: true, force: true });

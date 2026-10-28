@@ -28,6 +28,15 @@ describe('buildTrips', () => {
     ]);
   });
 
+  it('does not jump over more than 2 stops', () => {
+    // El bus que pasó por A a las 08:06 no puede "reaparecer" 4 paradas después.
+    expect(buildTrips(['A', 'B', 'C', 'D', 'E'], { A: ['08:06'], E: ['08:08'] })).toEqual([
+      ['08:06', null, null, null, null],
+      [null, null, null, null, '08:08'],
+    ]);
+    expect(buildTrips(['A', 'B', 'C'], { A: ['08:06'], C: ['08:08'] })).toEqual([['08:06', null, '08:08']]);
+  });
+
   it('real line 1 sample', () => {
     const trips = buildTrips(['343', '453', '128'], {
       '343': ['07:28', '07:45'],

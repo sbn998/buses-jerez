@@ -32,7 +32,10 @@ export interface RawLine {
 
 export interface Overrides {
   /** `note` explica de dónde sale cada corrección (solo para quien lea el archivo). */
-  stops: Record<string, { lat: number; lon: number; name?: string; description?: string; note?: string }>;
+  stops: Record<
+    string,
+    { lat: number; lon: number; name?: string; description?: string; approximate?: boolean; note?: string }
+  >;
 }
 
 /** Parada de OpenStreetMap: `ref` es el código de Comujesa cuando alguien lo ha apuntado. */
@@ -57,13 +60,34 @@ export function normalizeName(s: string): string {
     .join(' ');
 }
 
-/** Busca en el mapa la parada cuyo nombre es el comienzo más largo de la etiqueta del buscador. */
-function matchByName(label: string, kmlStops: KmlStop[]): KmlStop | undefined {
+/**
+ * Busca en el mapa la parada cuyo nombre (palabra por palabra) es el comienzo más
+ * largo de la etiqueta del buscador. Reglas para no copiar ubicaciones falsas:
+ * - Solo se miran paradas del mapa sin código, o con un código que no existe en el
+ *   buscador. Si el código existe, esa marca es OTRA parada real (a menudo la de
+ *   la acera de enfrente) y no se puede usar.
+ * - Cada marca del mapa se usa como mucho una vez por línea (`used`). Si hay dos
+ *   con el mismo nombre (una por sentido), se van usando en el orden del mapa,
+ *   que sigue el recorrido.
+ */
+function matchByName(
+  label: string,
+  kmlStops: KmlStop[],
+  knownCodes: Set<string>,
+  used: Set<KmlStop>,
+): KmlStop | undefined {
   const target = normalizeName(label);
   let best: KmlStop | undefined;
+  let bestLength = 0;
   for (const k of kmlStops) {
+    if (used.has(k) || (k.code && knownCodes.has(k.code))) continue;
     const n = normalizeName(k.name);
-    if (n && target.startsWith(n) && n.length > (best ? normalizeName(best.name).length : 0)) best = k;
+    const matches = n && (target === n || target.startsWith(n + ' '));
+    // Con ">" estricto, ante un empate gana la primera marca del mapa.
+    if (matches && n.length > bestLength) {
+      best = k;
+      bestLength = n.length;
+    }
   }
   return best;
 }
@@ -89,13 +113,25 @@ export function assemble(raw: RawLine[], overrides: Overrides, osmStops: OsmStop
   const stops: Record<string, Stop> = {};
   const warnings: string[] = [];
   const lines: Omit<Line, 'trips'>[] = [];
+  // Todos los códigos que da el buscador, en cualquier línea.
+  const knownCodes = new Set(raw.flatMap((l) => l.options.map((o) => o.code)));
 
   for (const line of raw) {
     const kmlStops = line.kml?.stops ?? [];
+    const used = new Set<KmlStop>();
     for (const opt of line.options) {
-      if (stops[opt.code]) continue; // ya ubicada desde otra línea
       const override = overrides.stops[opt.code];
       const byCode = kmlStops.find((k) => k.code === opt.code);
+      // La marca por nombre se calcula (y se reserva) aunque la parada ya esté
+      // ubicada desde otra línea, para que no se la quede otra parada de esta línea.
+      const byName = byCode ? undefined : matchByName(opt.label, kmlStops, knownCodes, used);
+      if (byCode) used.add(byCode);
+      if (byName) used.add(byName);
+      if (override && byCode) {
+        warnings.push(`stop ${opt.code} has an override but is now on the official map of line ${line.id}: check overrides.json`);
+      }
+      if (stops[opt.code]) continue; // ya ubicada desde otra línea
+
       if (override) {
         stops[opt.code] = {
           code: opt.code,
@@ -104,22 +140,20 @@ export function assemble(raw: RawLine[], overrides: Overrides, osmStops: OsmStop
           lat: override.lat,
           lon: override.lon,
           coordSource: 'override',
+          ...(override.approximate ? { approximate: true } : {}),
         };
       } else if (byCode) {
         stops[opt.code] = { ...byCode, code: opt.code, coordSource: 'kml' };
-      } else {
-        const byName = matchByName(opt.label, kmlStops);
-        if (byName) {
-          stops[opt.code] = {
-            code: opt.code,
-            name: byName.name,
-            description: '',
-            lat: byName.lat,
-            lon: byName.lon,
-            coordSource: 'name-match',
-          };
-          warnings.push(`stop ${opt.code} line ${line.id} located by name match with map stop ${byName.code}`);
-        }
+      } else if (byName) {
+        stops[opt.code] = {
+          code: opt.code,
+          name: byName.name,
+          description: byName.description,
+          lat: byName.lat,
+          lon: byName.lon,
+          coordSource: 'name-match',
+        };
+        warnings.push(`stop ${opt.code} line ${line.id} located by name match with map stop "${byName.name}" ${byName.code}`);
       }
     }
 

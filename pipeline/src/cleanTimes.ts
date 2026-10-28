@@ -9,6 +9,7 @@
  *   el autobús pasa dos veces por la misma parada y Comujesa da primero todas las
  *   horas de una pasada y luego las de la otra. En los dos casos son horas reales:
  *   se conservan todas y se ordenan.
+ * - Horas repetidas exactamente: se deja una.
  *
  * Cada corrección se apunta en `issues`, para que aparezca en los avisos del
  * proceso y se pueda revisar.
@@ -28,5 +29,11 @@ export function cleanTimes(times: TimeOfDay[]): { times: TimeOfDay[]; issues: st
   // Las horas "HH:MM" con dos cifras se ordenan bien como texto.
   const sorted = [...kept].sort();
   if (sorted.some((t, i) => t !== kept[i])) issues.push('reordered');
-  return { times: sorted, issues };
+  // Una misma hora repetida no es un segundo autobús: se deja una sola.
+  const unique = sorted.filter((t, i) => {
+    if (i === 0 || t !== sorted[i - 1]) return true;
+    issues.push(`removed duplicate ${t}`);
+    return false;
+  });
+  return { times: unique, issues };
 }

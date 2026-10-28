@@ -23,13 +23,16 @@ interface OpenTrip {
 /**
  * Devuelve un viaje por fila, con una hora (o null) por cada parada de `stopCodes`.
  * Una hora se une a un viaje si ese bus pasó por una parada anterior como mucho
- * `maxGapMin` minutos antes. Si hay varios candidatos, gana el que pasó más tarde
- * (el que acaba de salir de la parada anterior).
+ * `maxGapMin` minutos antes y saltándose como mucho `maxSkippedStops` paradas
+ * (un autobús no "desaparece" durante muchas paradas para reaparecer después).
+ * Si hay varios candidatos, gana el que pasó más tarde (el que acaba de salir de
+ * la parada anterior).
  */
 export function buildTrips(
   stopCodes: string[],
   timesByStop: Record<string, TimeOfDay[]>,
   maxGapMin = 15,
+  maxSkippedStops = 2,
 ): (TimeOfDay | null)[][] {
   const trips: OpenTrip[] = [];
   stopCodes.forEach((code, k) => {
@@ -39,7 +42,8 @@ export function buildTrips(
       let best: OpenTrip | undefined;
       for (const trip of trips) {
         const gap = m - trip.lastMinutes;
-        if (trip.lastIndex < k && trip.times[k] === null && gap >= 0 && gap <= maxGapMin) {
+        const skipped = k - trip.lastIndex - 1;
+        if (skipped >= 0 && skipped <= maxSkippedStops && trip.times[k] === null && gap >= 0 && gap <= maxGapMin) {
           if (!best || trip.lastMinutes > best.lastMinutes) best = trip;
         }
       }

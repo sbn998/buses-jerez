@@ -10,16 +10,17 @@ function makeDataset(): Dataset {
   const lines: Line[] = [];
   for (let i = 1; i <= 18; i++) {
     const codes = [`${i}01`, `${i}02`];
-    for (const code of codes) {
-      stops[code] = { code, name: 'P' + code, description: '', lat: 36.68, lon: -6.13, coordSource: 'kml' };
-    }
+    codes.forEach((code, j) => {
+      // Cada parada en un sitio distinto (dos códigos en el mismo punto es un error).
+      stops[code] = { code, name: 'P' + code, description: '', lat: 36.6 + i * 0.01, lon: -6.2 + j * 0.01, coordSource: 'kml' };
+    });
     lines.push({
       id: String(i),
       name: 'L' + i,
       colour: '#000000',
       stopCodes: codes,
       directions: [{ headsign: 'X', stopCodes: codes }],
-      shapes: [],
+      shapes: [[[-6.13, 36.68], [-6.14, 36.69]]],
       timesByStop: Object.fromEntries(codes.map((c) => [c, { lab: [...times], sab: [], fes: [] }])),
       trips: { lab: [], sab: [], fes: [] },
     });
@@ -84,6 +85,55 @@ describe('validate', () => {
       for (const t of Object.values(line.timesByStop)) t.lab = t.lab.slice(0, 7);
     }
     expect(validate(ds, makeDataset()).join()).toMatch(/times/);
+  });
+
+  it('rejects NaN or missing coordinates', () => {
+    const ds = makeDataset();
+    ds.stops['101'].lat = Number.NaN;
+    delete (ds.stops['102'] as Partial<Dataset['stops'][string]>).lon;
+    const errors = validate(ds, null).join();
+    expect(errors).toMatch(/101/);
+    expect(errors).toMatch(/102/);
+  });
+
+  it('rejects a line without map route', () => {
+    const ds = makeDataset();
+    ds.lines[2].shapes = [];
+    expect(validate(ds, null).join()).toMatch(/line 3/);
+  });
+
+  it('rejects a line and day type that had times and now has none', () => {
+    const prev = makeDataset();
+    prev.lines[0].timesByStop['101'].sab = ['10:00'];
+    expect(validate(makeDataset(), prev).join()).toMatch(/line 1.*sab/);
+  });
+
+  it('rejects a 35% rise in times', () => {
+    const ds = makeDataset();
+    for (const line of ds.lines) {
+      for (const t of Object.values(line.timesByStop)) t.sab = t.lab.slice(0, 4);
+    }
+    expect(validate(ds, makeDataset()).join()).toMatch(/times/);
+  });
+
+  it('rejects duplicate times', () => {
+    const ds = makeDataset();
+    ds.lines[0].timesByStop['101'].lab = ['07:00', '07:00', '08:00'];
+    expect(validate(ds, null).join()).toMatch(/duplicate/);
+  });
+
+  it('rejects two stop codes at the same point when one comes from OpenStreetMap', () => {
+    const ds = makeDataset();
+    ds.stops['102'] = { ...ds.stops['102'], lat: ds.stops['101'].lat, lon: ds.stops['101'].lon, coordSource: 'osm' };
+    expect(validate(ds, null).join()).toMatch(/101.*102|102.*101/);
+  });
+
+  it('accepts two stop codes at the same point when the official map or the author says so', () => {
+    const ds = makeDataset();
+    ds.stops['102'] = { ...ds.stops['102'], lat: ds.stops['101'].lat, lon: ds.stops['101'].lon };
+    expect(validate(ds, null)).toEqual([]);
+    ds.stops['102'].coordSource = 'override';
+    expect(validate(ds, null)).toEqual([]);
   });
 
   it('rejects 15% drop in stops', () => {

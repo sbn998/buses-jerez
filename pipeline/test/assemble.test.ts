@@ -78,6 +78,55 @@ describe('assemble', () => {
     expect(warnings).not.toContain('stop 507 line 1 without coordinates');
   });
 
+  it('uses each map stop at most once per line, in route order', () => {
+    // Línea 10: el mapa no trae códigos y hay dos "Hospital", uno por sentido.
+    const line = rawLine({
+      options: [
+        { code: '158', label: 'Hospital Ida' },
+        { code: '343', label: 'Plaza Esteve Esteve' },
+        { code: '159', label: 'Hospital Vuelta' },
+      ],
+      kml: {
+        title: 'Línea 10 (A - B)',
+        stops: [
+          { code: '', name: 'Hospital', description: '', lat: 36.691, lon: -6.111 },
+          { code: '343', name: 'Plaza Esteve', description: 'Esteve', lat: 36.68, lon: -6.13 },
+          { code: '', name: 'Hospital', description: '', lat: 36.692, lon: -6.112 },
+        ],
+        shapes: [],
+      },
+    });
+    const { stops } = assemble([line], { stops: {} });
+    expect(stops['158']).toMatchObject({ lat: 36.691, lon: -6.111 });
+    expect(stops['159']).toMatchObject({ lat: 36.692, lon: -6.112 });
+  });
+
+  it('never copies the location of a map stop that is another real stop', () => {
+    // 107 existe en el buscador: su ubicación no puede usarse para la parada 300.
+    const line = rawLine({
+      options: [
+        { code: '300', label: 'Alcázar Hacia Centro' },
+        { code: '107', label: 'Alcázar Hacia Fuera' },
+      ],
+      kml: {
+        title: 'Línea 13 (A - B)',
+        stops: [{ code: '107', name: 'Alcázar', description: '', lat: 36.67, lon: -6.14 }],
+        shapes: [],
+      },
+    });
+    const { stops, warnings } = assemble([line], { stops: {} });
+    expect(stops['107']).toMatchObject({ coordSource: 'kml' });
+    expect(stops['300']).toBeUndefined();
+    expect(warnings).toContain('stop 300 line 1 without coordinates');
+  });
+
+  it('marks approximate overrides and warns when the official map now has the stop', () => {
+    const overrides = { stops: { '343': { lat: 36.7, lon: -6.1, approximate: true } } };
+    const { stops, warnings } = assemble([rawLine()], overrides);
+    expect(stops['343']).toMatchObject({ coordSource: 'override', approximate: true });
+    expect(warnings.some((w) => w.includes('343') && w.includes('override'))).toBe(true);
+  });
+
   it('override wins', () => {
     const { stops } = assemble([rawLine()], { stops: { '343': { lat: 36.7, lon: -6.1 } } });
     expect(stops['343']).toMatchObject({ lat: 36.7, lon: -6.1, coordSource: 'override' });
