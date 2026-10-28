@@ -9,6 +9,8 @@
 !/jest.config.js
 !/jest.setup.js
 !/assets/
+!/scripts/
+!/eas.json
 !/src/
 !/docs/
 !/README.md

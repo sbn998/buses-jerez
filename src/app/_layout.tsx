@@ -4,6 +4,7 @@ import { getLocales } from 'expo-localization';
 import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 
+import { DataProvider } from '@/data/DataProvider';
 import i18n, { initI18n, resolveLanguage } from '@/i18n';
 import { useSettings } from '@/stores/settings';
 
@@ -20,7 +21,9 @@ export default function RootLayout() {
   }, [lang]);
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }} />
+      <DataProvider>
+        <Stack screenOptions={{ headerShown: false }} />
+      </DataProvider>
     </ThemeProvider>
   );
 }
