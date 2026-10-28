@@ -34,6 +34,7 @@ Importante: la app de desarrollo carga su código desde el ordenador, así que n
 ## Parte 5: Prueba sin conexión (opcional, una vez)
 
 15. **Compila la versión de prueba**, que lleva el código dentro y no necesita el ordenador: `npx eas-cli build --profile preview --platform android`. Usa la misma cuota gratuita mensual. (Esperar entre 15 y 30 min.)
+
 **Aviso:** la versión de prueba usa el mismo nombre de paquete (`com.sbn998.busesjerez`), así que al instalarla **reemplaza la app de desarrollo**. Al terminar, restaura la de desarrollo con el paso 20.
 
 16. **Descarga e instala el APK de prueba:** abre su enlace en el móvil, descárgalo y pulsa "Instalar" (ya tienes permitido instalar desde esa fuente, paso 8). No tiene menú de desarrollo; es la app normal. (5 min)
