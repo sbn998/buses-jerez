@@ -1,0 +1,37 @@
+# Lista blanca: se ignora todo y solo se sube lo necesario para que la app funcione.
+# Al crear una carpeta nueva necesaria (por ejemplo .github/ o pipeline/), añadirla aquí con "!".
+/*
+!/.gitignore
+!/app.json
+!/package.json
+!/package-lock.json
+!/tsconfig.json
+!/assets/
+!/src/
+
+# Secretos y claves: nunca, aunque estén dentro de una carpeta permitida.
+.env
+.env.*
+*.key
+*.pem
+*.p8
+*.p12
+*.jks
+*.keystore
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
+credentials.json
+*secret*
+*credential*
+
+# Generados o locales dentro de carpetas permitidas.
+node_modules/
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+*.tsbuildinfo
+*.log
+.DS_Store
+Thumbs.db
