@@ -1,0 +1,13 @@
+{
+  // Configuración propia del contrato de datos. Hace falta porque el proceso de datos
+  // (pipeline/) usa estos archivos en GitHub sin instalar Expo: sin este archivo, las
+  // herramientas buscarían el tsconfig de la app, que depende de Expo.
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2023",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true
+  },
+  "include": ["*.ts"]
+}
