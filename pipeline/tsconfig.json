@@ -1,0 +1,13 @@
+{
+  // Configuración de TypeScript solo para el proceso de datos (pipeline).
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  "include": ["src", "test", "../src/data"]
+}

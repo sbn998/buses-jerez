@@ -10,6 +10,8 @@
 !/src/
 !/docs/
 !/README.md
+!/pipeline/
+!/.github/
 
 # Secretos y claves: nunca, aunque estén dentro de una carpeta permitida.
 .env
@@ -32,6 +34,7 @@ node_modules/
 .expo/
 dist/
 web-build/
+out/
 expo-env.d.ts
 *.tsbuildinfo
 *.log

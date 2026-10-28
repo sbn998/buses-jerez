@@ -1,0 +1,19 @@
+{
+  "name": "buses-jerez-pipeline",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "build-data": "tsx src/main.ts"
+  },
+  "dependencies": {
+    "cheerio": "^1.2.0",
+    "fast-xml-parser": "^5.11.2"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}
