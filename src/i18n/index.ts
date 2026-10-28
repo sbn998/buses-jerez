@@ -21,7 +21,8 @@ export function resolveLanguage(
 // Arranca i18next con el idioma dado. Si ya estaba arrancado, solo cambia de idioma.
 export function initI18n(lang: 'es' | 'en') {
   if (i18n.isInitialized) {
-    void i18n.changeLanguage(lang);
+    // Solo se cambia si de verdad es otro idioma: así no se avisa a las pantallas sin motivo.
+    if (i18n.language !== lang) void i18n.changeLanguage(lang);
     return i18n;
   }
   void i18n.use(initReactI18next).init({
