@@ -1,1 +1,10 @@
-{ "stops": {} }
+{
+  "stops": {
+    "514": { "lat": 36.663448, "lon": -6.1183039, "name": "C/Sta Inés", "description": "Canaleja", "note": "APROXIMADA: misma ubicación que 506 (C/Santa Inés, otra acera). Revisar en la calle." },
+    "515": { "lat": 36.6659492, "lon": -6.1157167, "name": "Rsd El Duque", "description": "Canaleja", "note": "APROXIMADA: misma ubicación que 503 (Rsd El Duque, otra acera). Revisar en la calle." },
+    "532": { "lat": 36.7194848, "lon": -6.100595, "name": "Prq Pozoalbero", "description": "Dirección Las Flores", "note": "APROXIMADA: parada Pozoalbero (ref 498) de OpenStreetMap. Revisar." },
+    "533": { "lat": 36.7194848, "lon": -6.100595, "name": "Parq Pozoalbero", "description": "Dirección Nva Jarilla", "note": "APROXIMADA: parada Pozoalbero (ref 498) de OpenStreetMap. Revisar." },
+    "529": { "lat": 36.7019969, "lon": -6.1342845, "name": "Mª Auxiliadora II", "description": "Dirección Avda Reina Sofía", "note": "APROXIMADA: parada María Auxiliadora (ref 287) de OpenStreetMap. Puede estar a unos 100-200 m. Revisar." },
+    "530": { "lat": 36.7019969, "lon": -6.1342845, "name": "Mª Auxiliadora II", "description": "Dirección Avd Ingeniero Ángel Mayo", "note": "APROXIMADA: parada María Auxiliadora (ref 287) de OpenStreetMap. Puede estar a unos 100-200 m. Revisar." }
+  }
+}

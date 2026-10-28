@@ -10,6 +10,8 @@
  * 2. Mapa oficial, buscando el mismo código.
  * 3. Mapa oficial, buscando un nombre parecido. Hace falta porque a veces el
  *    código del mapa no coincide con el del buscador (Madre de Dios: 280 frente a 352).
+ * 4. OpenStreetMap, buscando el mismo código en su etiqueta `ref`. Sirve para las
+ *    paradas nuevas que todavía no están en los mapas oficiales.
  *
  * Si no se encuentra ninguna, la parada se queda sin ubicación y se avisa.
  * La validación bloqueará la publicación hasta que se corrija.
@@ -29,7 +31,16 @@ export interface RawLine {
 }
 
 export interface Overrides {
-  stops: Record<string, { lat: number; lon: number; name?: string; description?: string }>;
+  /** `note` explica de dónde sale cada corrección (solo para quien lea el archivo). */
+  stops: Record<string, { lat: number; lon: number; name?: string; description?: string; note?: string }>;
+}
+
+/** Parada de OpenStreetMap: `ref` es el código de Comujesa cuando alguien lo ha apuntado. */
+export interface OsmStop {
+  ref: string;
+  name: string;
+  lat: number;
+  lon: number;
 }
 
 const STOPWORDS = new Set(['pz.', 'pz', 'plaza', 'de', 'del', 'la', 'las', 'el', 'los']);
@@ -74,7 +85,7 @@ function buildDirections(line: RawLine, warnings: string[]): Direction[] {
   return [{ headsign: line.options.at(-1)?.label ?? '', stopCodes: codes }];
 }
 
-export function assemble(raw: RawLine[], overrides: Overrides) {
+export function assemble(raw: RawLine[], overrides: Overrides, osmStops: OsmStop[] = []) {
   const stops: Record<string, Stop> = {};
   const warnings: string[] = [];
   const lines: Omit<Line, 'trips'>[] = [];
@@ -111,10 +122,6 @@ export function assemble(raw: RawLine[], overrides: Overrides) {
         }
       }
     }
-    // Avisa de las que siguen sin ubicación (tras mirar overrides, código y nombre).
-    for (const opt of line.options) {
-      if (!stops[opt.code]) warnings.push(`stop ${opt.code} line ${line.id} without coordinates`);
-    }
 
     lines.push({
       id: line.id,
@@ -125,6 +132,22 @@ export function assemble(raw: RawLine[], overrides: Overrides) {
       shapes: line.kml?.shapes ?? [],
       timesByStop: line.timesByStop,
     });
+  }
+  // Último recurso: OpenStreetMap. Se mira después de todas las líneas, para que
+  // un mapa oficial de otra línea tenga siempre preferencia.
+  for (const line of raw) {
+    for (const opt of line.options) {
+      if (stops[opt.code]) continue;
+      const osm = osmStops.find((o) => o.ref === opt.code);
+      if (osm) {
+        stops[opt.code] = {
+          code: opt.code, name: osm.name || opt.label, description: '',
+          lat: osm.lat, lon: osm.lon, coordSource: 'osm',
+        };
+      } else {
+        warnings.push(`stop ${opt.code} line ${line.id} without coordinates`);
+      }
+    }
   }
   return { lines, stops, warnings };
 }

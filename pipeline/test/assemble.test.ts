@@ -52,6 +52,32 @@ describe('assemble', () => {
     expect(warnings.some((w) => w.includes('352') && w.includes('280'))).toBe(true);
   });
 
+  it('map stops without code are only used by name', () => {
+    const line = rawLine({
+      options: [{ code: '99', label: 'Hospital Sentido Jerez' }, { code: '343', label: 'Plaza Esteve Esteve' }],
+      kml: {
+        title: 'Línea 10 (A - B)',
+        stops: [
+          { code: '', name: 'Hospital', description: 'Sentido Jerez', lat: 36.69, lon: -6.11 },
+          { code: '343', name: 'Plaza Esteve', description: 'Esteve', lat: 36.68, lon: -6.13 },
+        ],
+        shapes: [],
+      },
+    });
+    const { stops } = assemble([line], { stops: {} });
+    expect(stops['99']).toMatchObject({ lat: 36.69, lon: -6.11, coordSource: 'name-match' });
+  });
+
+  it('falls back to OpenStreetMap by ref', () => {
+    const line = rawLine({ options: [{ code: '507', label: 'C/Huelva Unica' }, { code: '343', label: 'Plaza Esteve Esteve' }] });
+    const osm = [{ ref: '507', name: 'Calle Huelva', lat: 36.698, lon: -6.105 }];
+    const { stops, warnings } = assemble([line], { stops: {} }, osm);
+    expect(stops['507']).toEqual({
+      code: '507', name: 'Calle Huelva', description: '', lat: 36.698, lon: -6.105, coordSource: 'osm',
+    });
+    expect(warnings).not.toContain('stop 507 line 1 without coordinates');
+  });
+
   it('override wins', () => {
     const { stops } = assemble([rawLine()], { stops: { '343': { lat: 36.7, lon: -6.1 } } });
     expect(stops['343']).toMatchObject({ lat: 36.7, lon: -6.1, coordSource: 'override' });

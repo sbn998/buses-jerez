@@ -27,8 +27,8 @@ export interface Stop {
   description: string;
   lat: number;
   lon: number;
-  /** De dónde salen las coordenadas: mapa oficial, nombre parecido u corrección manual. */
-  coordSource: 'kml' | 'name-match' | 'override';
+  /** De dónde salen las coordenadas: mapa oficial, nombre parecido, OpenStreetMap o corrección manual. */
+  coordSource: 'kml' | 'name-match' | 'osm' | 'override';
 }
 
 /** Un sentido de la línea ("hacia San Telmo") con sus paradas en orden. */

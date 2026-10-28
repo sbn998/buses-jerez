@@ -36,3 +36,13 @@ Las piezas se van añadiendo conforme se construyen. Cada archivo empieza con un
 | `src/trips.ts` | Reconstruye los viajes: qué hora de cada parada corresponde al mismo autobús. |
 | `src/holidays.ts` y `holidays-local.json` | Festivos nacionales y andaluces (automáticos) y locales de Jerez (a mano, una vez al año). |
 | `src/validate.ts` | Revisa los datos antes de publicar. Si algo está roto o sospechoso, bloquea la publicación. |
+| `src/cleanTimes.ts` | Corrige pequeños fallos de los datos oficiales: quita horas imposibles (como "00:01") y ordena las desordenadas. |
+| `src/osm.ts` | Paradas de OpenStreetMap, el último recurso para ubicar paradas nuevas que no salen en los mapas oficiales. |
+| `src/manifest.ts` | Crea `manifest.json`, con una "huella" de los datos para que la app sepa si han cambiado. |
+| `src/main.ts` | El programa principal: ejecuta todos los pasos en orden y decide si se publica. |
+
+## Qué revisar a mano de vez en cuando
+
+- **`overrides.json`**: las paradas marcadas como `APROXIMADA` tienen una ubicación estimada. Si pasas por ellas, comprueba dónde están exactamente y corrige la latitud y longitud.
+- **`holidays-local.json`**: cada año, añade los 2 festivos locales de Jerez (salen en el BOJA). Formato: `{ "2027": [{ "date": "2027-10-09", "name": "San Dionisio" }] }`.
+- **Avisos del proceso**: en GitHub → Actions → el último proceso, la sección de avisos lista lo que se ha corregido automáticamente.
