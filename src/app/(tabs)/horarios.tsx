@@ -17,7 +17,9 @@ import { TimesGrid } from '@/components/schedule/TimesGrid';
 import { ThemedText } from '@/components/themed-text';
 import { BottomTabInset, Spacing } from '@/constants/theme';
 import { useData } from '@/data/DataProvider';
+import { useNow } from '@/hooks/use-now';
 import { useTheme } from '@/hooks/use-theme';
+import { findLineStop } from '@/lib/lineStop';
 import { calendarDays, headsignFor, nextDepartures, toDateKey } from '@/lib/schedule';
 import { useFavorites } from '@/stores/favorites';
 
@@ -43,16 +45,12 @@ export default function Horarios() {
     }
   }, [params.line, params.stop]);
 
-  // La hora actual se refresca cada minuto para que "en N min" no se quede desfasado.
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 60_000);
-    return () => clearInterval(id);
-  }, []);
+  // La hora actual (se renueva al cambiar de minuto y al volver a la app).
+  const now = useNow();
 
   const line = data.lines.find((l) => l.id === lineId) ?? null;
   // Solo vale una parada que pertenezca a la línea (si no, se ignora).
-  const stop = line && stopCode && line.stopCodes.includes(stopCode) ? data.stops[stopCode] ?? null : null;
+  const stop = findLineStop(data, lineId, stopCode)?.stop ?? null;
 
   const days = useMemo(() => calendarDays(now, 14, data.holidays), [now, data.holidays]);
   const todayKey = toDateKey(now);

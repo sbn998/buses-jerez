@@ -6,6 +6,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useData } from '@/data/DataProvider';
 import { useTheme } from '@/hooks/use-theme';
+import { findLineStop } from '@/lib/lineStop';
 import { dayTypeFor, nextDepartures } from '@/lib/schedule';
 import type { Favorite } from '@/stores/favorites';
 
@@ -30,10 +31,10 @@ export function FavoritesList({ items, now, onSelect }: Props) {
   return (
     <View style={styles.list}>
       {items.map((f) => {
-        const line = data.lines.find((l) => l.id === f.lineId);
-        const stop = data.stops[f.stopCode];
-        // Si los datos nuevos ya no traen esa línea o parada, se omite.
-        if (!line || !stop) return null;
+        // Si los datos nuevos ya no traen esa línea o parada, o la línea ya no pasa por ella, se omite.
+        const found = findLineStop(data, f.lineId, f.stopCode);
+        if (!found) return null;
+        const { line, stop } = found;
         const next = nextDepartures(line.timesByStop[f.stopCode]?.[dayType] ?? [], now, 1)[0];
         return (
           <Pressable
