@@ -1,0 +1,54 @@
+# Proceso diario de datos de Buses Jerez.
+#
+# Cada noche (04:00 UTC, de madrugada en Jerez) GitHub ejecuta el proceso de la
+# carpeta pipeline/: descarga los horarios de Comujesa, los revisa y, si todo está
+# bien, los publica en https://sbn998.github.io/buses-jerez/.
+# Si la revisión falla, el trabajo "build" falla, no se publica nada y GitHub
+# envía un correo al dueño del repositorio.
+# También se puede lanzar a mano desde la pestaña Actions ("Run workflow").
+name: Datos diarios
+
+on:
+  schedule:
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Nunca dos publicaciones a la vez.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pipeline
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: pipeline/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build-data
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: pipeline/out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
