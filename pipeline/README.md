@@ -34,3 +34,4 @@ Las piezas se van añadiendo conforme se construyen. Cada archivo empieza con un
 | `src/assemble.ts` | Junta paradas, horas, sentidos y mapa de cada línea, y decide de dónde sale la ubicación de cada parada. |
 | `overrides.json` | Correcciones manuales de ubicación de paradas, para los casos que el mapa oficial no resuelve. |
 | `src/trips.ts` | Reconstruye los viajes: qué hora de cada parada corresponde al mismo autobús. |
+| `src/holidays.ts` y `holidays-local.json` | Festivos nacionales y andaluces (automáticos) y locales de Jerez (a mano, una vez al año). |
