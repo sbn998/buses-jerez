@@ -36,7 +36,7 @@ const en: Textos = {
     dayFes: 'Sunday/holiday',
     selectDay: 'Show timetable for {{date}}',
     freshness: 'Official Comujesa timetables · checked on {{date}}',
-    freshnessBundled: 'Official Comujesa timetables · copy included in the app',
+    freshnessBundled: 'Official Comujesa timetables · copy included in the app, from {{date}}',
   },
   common: {
     comingSoon: 'Coming soon',

@@ -31,7 +31,7 @@ const es = {
     dayFes: 'Domingo/festivo',
     selectDay: 'Ver horario del {{date}}',
     freshness: 'Horarios oficiales de Comujesa · comprobados el {{date}}',
-    freshnessBundled: 'Horarios oficiales de Comujesa · copia incluida en la app',
+    freshnessBundled: 'Horarios oficiales de Comujesa · copia incluida en la app, del {{date}}',
   },
   common: {
     comingSoon: 'Próximamente',

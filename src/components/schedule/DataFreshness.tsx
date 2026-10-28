@@ -6,12 +6,14 @@ import { useData } from '@/data/DataProvider';
 
 export function DataFreshness() {
   const { t, i18n } = useTranslation();
-  const { source, checkedAt } = useData();
-  // Con la copia incluida (o sin fecha) no hay día de comprobación que enseñar.
+  const { data, source, checkedAt } = useData();
+  const format = (iso: string) => new Date(iso).toLocaleDateString(i18n.language);
+  // Siempre se enseña una fecha: la de comprobación si hay datos descargados y,
+  // con la copia incluida en la app, la de cuando se generaron esos horarios.
   const text =
     source === 'downloaded' && checkedAt
-      ? t('schedule.freshness', { date: new Date(checkedAt).toLocaleDateString(i18n.language) })
-      : t('schedule.freshnessBundled');
+      ? t('schedule.freshness', { date: format(checkedAt) })
+      : t('schedule.freshnessBundled', { date: format(data.generatedAt) });
   return (
     <ThemedText type="small" themeColor="textSecondary">
       {text}
