@@ -24,3 +24,4 @@ Las piezas se van añadiendo conforme se construyen. Cada archivo empieza con un
 | Archivo | Qué hace |
 |---|---|
 | `../src/data/schema.ts` | Define la forma exacta de los datos (el contrato con la app). |
+| `src/http.ts` | Descarga páginas de la web con cuidado: espera entre peticiones, reintenta si falla y se identifica. |
