@@ -20,6 +20,8 @@ Necesitas: el ordenador con este proyecto, un móvil Android y el móvil y el or
 
 ## Parte 3: usarlo cada día
 
+Importante: la app de desarrollo carga su código desde el ordenador, así que necesita el ordenador conectado (servidor `npx expo start` activo y misma wifi). No sirve para probar el modo sin conexión; para eso está la Parte 5.
+
 10. **En el ordenador, arranca el servidor** con `npx expo start` en la carpeta del proyecto. Deja la terminal abierta. (1 min)
 11. **Abre la app "Buses Jerez" en el móvil.** Escanea el QR de la terminal o elige el servidor que aparece en la lista, para abrir el proyecto desde la app de desarrollo. (1 min)
 
@@ -27,8 +29,15 @@ Necesitas: el ordenador con este proyecto, un móvil Android y el móvil y el or
 
 12. **Pestañas:** se ven las 5 pestañas de la app. (1 min)
 13. **Horarios:** elige la línea 1 y la parada Plaza Esteve. El próximo bus y las horas coinciden con la web de Comujesa. (5 min)
-14. **Sin conexión:** activa el modo avión, cierra la app del todo, vuelve a abrirla (arranca el servidor de nuevo si te lo pide, o usa la última versión cargada) y comprueba que Horarios sigue funcionando. (3 min)
-15. **Idioma:** cambia el idioma del móvil a inglés, abre la app y comprueba que los textos cambian. Vuelve a ponerlo en español. (3 min)
+14. **Idioma:** cambia el idioma del móvil a inglés, abre la app y comprueba que los textos cambian. Vuelve a ponerlo en español. (3 min)
+
+## Parte 5: Prueba sin conexión (opcional, una vez)
+
+15. **Compila la versión de prueba**, que lleva el código dentro y no necesita el ordenador: `npx eas-cli build --profile preview --platform android`. Usa la misma cuota gratuita mensual. (Esperar entre 15 y 30 min.)
+16. **Descarga e instala el APK** igual que en los pasos 7 a 9. (5 min)
+17. **Ábrela una vez con conexión** y espera a que carguen los horarios. (2 min)
+18. **Activa el modo avión, cierra la app por completo y vuelve a abrirla.** No arranques ningún servidor. (2 min)
+19. **Comprueba que Horarios sigue mostrando la línea 1 en Plaza Esteve.** Si falla, avisa del fallo tal cual y no lo arregles por tu cuenta ni busques atajos. (2 min)
 
 ## Si algo falla
 
