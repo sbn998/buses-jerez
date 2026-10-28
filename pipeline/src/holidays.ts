@@ -7,6 +7,9 @@
  * - Locales de Jerez (2 al año): no los da ningún servicio, así que el autor los
  *   escribe a mano en `holidays-local.json` una vez al año (vienen en el BOJA). Si
  *   falta un año, se avisa pero no se bloquea la publicación.
+ * - Andalucía traslada al lunes los festivos que caen en domingo, y date.nager.at no
+ *   los incluye. Esos traslados salen en un decreto del BOJA (cada primavera, para el
+ *   año siguiente) y el autor los escribe a mano en `holidays-regional-extra.json`.
  */
 import type { Holiday } from '../../src/data/schema';
 
@@ -21,13 +24,22 @@ export type LocalHolidays = Record<string, { date: string; name: string }[]>;
 
 const PRIORITY: Record<Holiday['scope'], number> = { local: 3, regional: 2, national: 1 };
 
-export function buildHolidays(nager: NagerHoliday[], local: LocalHolidays, years: number[]) {
+export function buildHolidays(
+  nager: NagerHoliday[],
+  local: LocalHolidays,
+  years: number[],
+  regionalExtra: LocalHolidays = {},
+) {
   const warnings: string[] = [];
   const all: Holiday[] = [];
 
   for (const h of nager) {
     if (h.global) all.push({ date: h.date, name: h.localName, scope: 'national' });
     else if (h.counties?.includes('ES-AN')) all.push({ date: h.date, name: h.localName, scope: 'regional' });
+  }
+  // Festivos de Andalucía trasladados al lunes (no los da Nager): se escriben a mano.
+  for (const year of years) {
+    for (const e of regionalExtra[String(year)] ?? []) all.push({ date: e.date, name: e.name, scope: 'regional' });
   }
   for (const year of years) {
     const entries = local[String(year)] ?? [];

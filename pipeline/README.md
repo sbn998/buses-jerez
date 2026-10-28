@@ -45,6 +45,7 @@ Las piezas se van añadiendo conforme se construyen. Cada archivo empieza con un
 
 - **`overrides.json`**: las paradas con `"approximate": true` tienen una ubicación estimada (copiada de su parada gemela) y la app lo indicará. Si pasas por ellas, comprueba dónde están exactamente y corrige la latitud y longitud.
 - **`holidays-local.json`**: cada año, añade los 2 festivos locales de Jerez (salen en el BOJA, normalmente en octubre). No hace falta acordarse: desde octubre, GitHub abre una Issue para recordártelo. Formato: `{ "2027": [{ "date": "2027-10-09", "name": "San Dionisio" }] }`.
+- **`holidays-regional-extra.json`**: cada primavera, el BOJA publica el decreto con las fiestas laborales de Andalucía del año siguiente. Si algún festivo se traslada al lunes (porque cae en domingo), date.nager.at no lo incluye: añádelo aquí. Formato: `{ "2027": [{ "date": "2027-03-01", "name": "Día de Andalucía (trasladado)" }] }`. La Issue mensual de GitHub también te lo recuerda.
 - **Avisos del proceso**: en GitHub → Actions → el último proceso, la sección de avisos lista lo que se ha corregido automáticamente.
 | `src/previous.ts` | Descarga la versión publicada anterior para comparar. Si falla por algo que no sea "todavía no existe", no se publica. |
 | `src/checkHolidays.ts` | Comprueba si faltan festivos locales. GitHub lo ejecuta el día 1 de cada mes y, si faltan, abre una Issue (te llega por correo). |

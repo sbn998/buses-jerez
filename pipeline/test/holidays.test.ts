@@ -32,4 +32,19 @@ describe('buildHolidays', () => {
       { date: '2026-02-28', name: 'Local', scope: 'local' },
     ]);
   });
+
+  it('emits extra regional holidays (moved to Monday) as regional', () => {
+    const extra = { '2026': [{ date: '2026-11-02', name: 'Todos los Santos (trasladado)' }] };
+    const { holidays } = buildHolidays(nager, {}, [2026], extra);
+    expect(holidays).toContainEqual({ date: '2026-11-02', name: 'Todos los Santos (trasladado)', scope: 'regional' });
+  });
+
+  it('local still wins over an extra regional holiday on the same date', () => {
+    const local = { '2026': [{ date: '2026-11-02', name: 'Local' }] };
+    const extra = { '2026': [{ date: '2026-11-02', name: 'Todos los Santos (trasladado)' }] };
+    const { holidays } = buildHolidays(nager, local, [2026], extra);
+    expect(holidays.filter((h) => h.date === '2026-11-02')).toEqual([
+      { date: '2026-11-02', name: 'Local', scope: 'local' },
+    ]);
+  });
 });

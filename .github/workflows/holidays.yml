@@ -56,4 +56,6 @@ jobs:
           ]
           \`\`\`
 
+          Revisa también el decreto del BOJA con el calendario de fiestas laborales de Andalucía (se publica cada primavera para el año siguiente). Si algún festivo andaluz se traslada al lunes (por ejemplo, cuando cae en domingo), añádelo a \`pipeline/holidays-regional-extra.json\`, porque date.nager.at no lo incluye.
+
           Mientras falten, esos días la app mostrará el horario laborable en vez del de domingos y festivos."

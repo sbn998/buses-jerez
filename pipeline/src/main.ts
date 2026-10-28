@@ -93,7 +93,12 @@ async function main() {
   for (const y of years) {
     nager.push(...JSON.parse(await client.getText(`https://date.nager.at/api/v3/PublicHolidays/${y}/ES`)));
   }
-  const holidays = buildHolidays(nager, readJson<LocalHolidays>('holidays-local.json'), years);
+  const holidays = buildHolidays(
+    nager,
+    readJson<LocalHolidays>('holidays-local.json'),
+    years,
+    readJson<LocalHolidays>('holidays-regional-extra.json'),
+  );
   warnings.push(...holidays.warnings);
 
   const dataset: Dataset = {
