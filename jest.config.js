@@ -3,4 +3,5 @@
 module.exports = {
   preset: 'jest-expo',
   testPathIgnorePatterns: ['/node_modules/', '/pipeline/'],
+  setupFiles: ['<rootDir>/jest.setup.js'],
 };

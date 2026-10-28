@@ -3,19 +3,21 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Tabs } from 'expo-router';
 import type { ComponentProps } from 'react';
+import { useTranslation } from 'react-i18next';
 
 type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-// Cada pestaña: nombre del archivo, título visible e icono. La primera (cerca) es la inicial.
-const PESTANAS: { name: string; title: string; icon: IconName }[] = [
-  { name: 'cerca', title: 'Cerca de mí', icon: 'map-marker-radius' },
-  { name: 'horarios', title: 'Horarios', icon: 'clock-outline' },
-  { name: 'como-llego', title: 'Cómo llego', icon: 'directions' },
-  { name: 'lineas', title: 'Líneas', icon: 'bus-multiple' },
-  { name: 'recarga', title: 'Recarga', icon: 'credit-card-outline' },
+// Cada pestaña: nombre del archivo, clave del título (i18n) e icono. La primera (cerca) es la inicial.
+const PESTANAS: { name: string; titleKey: string; icon: IconName }[] = [
+  { name: 'cerca', titleKey: 'tabs.nearby', icon: 'map-marker-radius' },
+  { name: 'horarios', titleKey: 'tabs.schedules', icon: 'clock-outline' },
+  { name: 'como-llego', titleKey: 'tabs.directions', icon: 'directions' },
+  { name: 'lineas', titleKey: 'tabs.lines', icon: 'bus-multiple' },
+  { name: 'recarga', titleKey: 'tabs.topup', icon: 'credit-card-outline' },
 ];
 
 export default function TabsLayout() {
+  const { t } = useTranslation();
   return (
     <Tabs screenOptions={{ headerShown: false }}>
       {PESTANAS.map((p) => (
@@ -23,7 +25,7 @@ export default function TabsLayout() {
           key={p.name}
           name={p.name}
           options={{
-            title: p.title,
+            title: t(p.titleKey),
             tabBarIcon: ({ color, size }) => (
               <MaterialCommunityIcons name={p.icon} color={color as string} size={size} />
             ),
