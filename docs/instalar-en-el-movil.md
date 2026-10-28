@@ -34,10 +34,14 @@ Importante: la app de desarrollo carga su código desde el ordenador, así que n
 ## Parte 5: Prueba sin conexión (opcional, una vez)
 
 15. **Compila la versión de prueba**, que lleva el código dentro y no necesita el ordenador: `npx eas-cli build --profile preview --platform android`. Usa la misma cuota gratuita mensual. (Esperar entre 15 y 30 min.)
-16. **Descarga e instala el APK** igual que en los pasos 7 a 9. (5 min)
+**Aviso:** la versión de prueba usa el mismo nombre de paquete (`com.sbn998.busesjerez`), así que al instalarla **reemplaza la app de desarrollo**. Al terminar, restaura la de desarrollo con el paso 20.
+
+16. **Descarga e instala el APK de prueba:** abre su enlace en el móvil, descárgalo y pulsa "Instalar" (ya tienes permitido instalar desde esa fuente, paso 8). No tiene menú de desarrollo; es la app normal. (5 min)
 17. **Ábrela una vez con conexión** y espera a que carguen los horarios. (2 min)
 18. **Activa el modo avión, cierra la app por completo y vuelve a abrirla.** No arranques ningún servidor. (2 min)
 19. **Comprueba que Horarios sigue mostrando la línea 1 en Plaza Esteve.** Si falla, avisa del fallo tal cual y no lo arregles por tu cuenta ni busques atajos. (2 min)
+
+20. **Restaura la app de desarrollo:** vuelve a instalar el APK de desarrollo desde el enlace del paso 6 (o en https://expo.dev, tu proyecto, Builds, elige la compilación de tipo development). (5 min)
 
 ## Si algo falla
 
