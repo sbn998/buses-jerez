@@ -4,6 +4,9 @@
   "main": "expo-router/entry",
   "dependencies": {
     "@expo/ui": "~58.0.25",
+    "@expo/vector-icons": "^15.0.2",
+    "@testing-library/react-native": "^14.1.0",
+    "@types/jest": "30.0.0",
     "expo": "~58.0.21",
     "expo-constants": "~58.0.14",
     "expo-device": "~58.0.5",
@@ -17,6 +20,8 @@
     "expo-symbols": "~58.0.4",
     "expo-system-ui": "~58.0.7",
     "expo-web-browser": "~58.0.7",
+    "jest": "~30.5.2",
+    "jest-expo": "~58.0.13",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-native": "0.88.1",
@@ -36,7 +41,9 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "test": "jest",
+    "typecheck": "tsc --noEmit"
   },
   "private": true
 }
