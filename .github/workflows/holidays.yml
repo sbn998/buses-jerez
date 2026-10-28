@@ -1,0 +1,59 @@
+# Comprobación mensual de los festivos locales de Jerez.
+#
+# El día 1 de cada mes, GitHub mira si pipeline/holidays-local.json tiene los
+# festivos locales que hacen falta (los del año actual y, desde octubre, los del
+# siguiente). Si falta alguno, abre una Issue en el repositorio para recordártelo.
+# GitHub te avisa por correo. Si ya hay una Issue abierta para esos años, no repite.
+# Para cerrarla: añade las fechas al archivo y cierra la Issue.
+name: Festivos locales
+
+on:
+  schedule:
+    - cron: '0 8 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pipeline
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: pipeline/package-lock.json
+      - run: npm ci
+      - name: Buscar años sin festivos locales
+        id: check
+        run: echo "missing=$(npm run --silent check-holidays)" >> "$GITHUB_OUTPUT"
+      - name: Abrir recordatorio
+        if: steps.check.outputs.missing != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MISSING: ${{ steps.check.outputs.missing }}
+        run: |
+          title="Faltan los festivos locales de Jerez de ${MISSING}"
+          if gh issue list --state open --search "in:title \"${title}\"" --json number --jq '.[0].number' | grep -q .; then
+            echo "Ya hay una Issue abierta: ${title}"
+            exit 0
+          fi
+          gh issue create --title "${title}" --body "Faltan los 2 festivos locales de Jerez de ${MISSING} en \`pipeline/holidays-local.json\`.
+
+          Salen en el BOJA (resolución de fiestas locales de Andalucía, normalmente en octubre) y en la web del Ayuntamiento de Jerez.
+
+          Formato:
+          \`\`\`json
+          \"${MISSING%% *}\": [
+            { \"date\": \"AAAA-MM-DD\", \"name\": \"Fiesta local de Jerez\" },
+            { \"date\": \"AAAA-MM-DD\", \"name\": \"Fiesta local de Jerez\" }
+          ]
+          \`\`\`
+
+          Mientras falten, esos días la app mostrará el horario laborable en vez del de domingos y festivos."
