@@ -35,3 +35,4 @@ Las piezas se van añadiendo conforme se construyen. Cada archivo empieza con un
 | `overrides.json` | Correcciones manuales de ubicación de paradas, para los casos que el mapa oficial no resuelve. |
 | `src/trips.ts` | Reconstruye los viajes: qué hora de cada parada corresponde al mismo autobús. |
 | `src/holidays.ts` y `holidays-local.json` | Festivos nacionales y andaluces (automáticos) y locales de Jerez (a mano, una vez al año). |
+| `src/validate.ts` | Revisa los datos antes de publicar. Si algo está roto o sospechoso, bloquea la publicación. |
