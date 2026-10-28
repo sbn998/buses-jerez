@@ -27,15 +27,34 @@ export interface SyncDeps {
   now(): Date;
 }
 
+/** Aviso en consola solo en desarrollo (en la app publicada no se muestra nada). */
+export function warnDev(message: string, error: unknown): void {
+  if (__DEV__) console.warn(message, error);
+}
+
+/** Comprueba la forma mínima de los datos: sin esto, un archivo a medias podría romper la app en cada arranque. */
+export function isDataset(x: unknown): x is Dataset {
+  if (!x || typeof x !== 'object') return false;
+  const d = x as Partial<Dataset>;
+  return (
+    d.schemaVersion === SCHEMA_VERSION &&
+    Array.isArray(d.lines) &&
+    !!d.stops &&
+    typeof d.stops === 'object' &&
+    Array.isArray(d.holidays)
+  );
+}
+
 /** Convierte el texto guardado en datos. Devuelve null si está vacío, roto o es de un formato que no entendemos. */
 export function parseStored(json: string | null): Stored | null {
   if (!json) return null;
   try {
     const s = JSON.parse(json) as Stored;
     if (!s || typeof s.version !== 'string' || typeof s.checkedAt !== 'string') return null;
-    if (!s.data || s.data.schemaVersion !== SCHEMA_VERSION) return null;
+    if (!isDataset(s.data)) return null;
     return s;
-  } catch {
+  } catch (e) {
+    warnDev('Datos guardados ilegibles, se ignoran:', e);
     return null;
   }
 }
@@ -53,7 +72,7 @@ export function pickDataset(stored: Stored | null, bundled: Dataset): PickedData
 export async function syncData(deps: SyncDeps, current: Stored | null): Promise<Stored | null> {
   try {
     const manifest = JSON.parse(await deps.fetchText(BASE_URL + 'manifest.json')) as Manifest;
-    if (manifest.schemaVersion !== SCHEMA_VERSION || typeof manifest.version !== 'string') return current;
+    if (!manifest || manifest.schemaVersion !== SCHEMA_VERSION || typeof manifest.version !== 'string') return current;
     const checkedAt = deps.now().toISOString();
     // Misma versión: solo apuntamos que hemos comprobado hoy.
     if (current && current.version === manifest.version) {
@@ -62,12 +81,13 @@ export async function syncData(deps: SyncDeps, current: Stored | null): Promise<
       return updated;
     }
     // Versión distinta: descargamos los datos completos y comprobamos su formato.
-    const data = JSON.parse(await deps.fetchText(BASE_URL + manifest.dataUrl)) as Dataset;
-    if (data.schemaVersion !== SCHEMA_VERSION) return current;
+    const data: unknown = JSON.parse(await deps.fetchText(BASE_URL + manifest.dataUrl));
+    if (!isDataset(data)) return current;
     const updated: Stored = { version: manifest.version, checkedAt, data };
     await deps.writeStored(JSON.stringify(updated));
     return updated;
-  } catch {
+  } catch (e) {
+    warnDev('No se pudieron actualizar los datos, se usan los que hay:', e);
     return current;
   }
 }

@@ -22,11 +22,19 @@ function makeDeps(fetchText: SyncDeps['fetchText']): SyncDeps & { writeStored: j
 }
 
 describe('dataSync', () => {
+  let warn: jest.SpyInstance;
+  beforeEach(() => {
+    warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+  afterEach(() => warn.mockRestore());
+
   it('falls back to bundled when offline', async () => {
     const deps = makeDeps(async () => {
       throw new Error('sin red');
     });
     expect(await syncData(deps, null)).toBeNull();
+    expect(deps.writeStored).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalled();
     const bundled = makeDataset();
     expect(pickDataset(null, bundled)).toEqual({ data: bundled, source: 'bundled', checkedAt: null });
   });
@@ -52,6 +60,7 @@ describe('dataSync', () => {
     expect(deps.fetchText).toHaveBeenCalledTimes(1);
     expect(result).toEqual({ ...current, checkedAt: NOW.toISOString() });
     expect(deps.writeStored).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(deps.writeStored.mock.calls[0][0])).toEqual({ ...current, checkedAt: NOW.toISOString() });
   });
 
   it('new version downloads data', async () => {
@@ -61,6 +70,7 @@ describe('dataSync', () => {
     );
     const result = await syncData(deps, current);
     expect(deps.fetchText).toHaveBeenCalledTimes(2);
+    expect(deps.fetchText).toHaveBeenLastCalledWith('https://sbn998.github.io/buses-jerez/data.json');
     expect(result).toEqual({ version: 'v2', checkedAt: NOW.toISOString(), data: newData });
     expect(deps.writeStored).toHaveBeenCalledTimes(1);
   });
@@ -70,6 +80,41 @@ describe('dataSync', () => {
       url.endsWith('manifest.json')
         ? JSON.stringify(makeManifest('v2'))
         : JSON.stringify({ ...makeDataset(), schemaVersion: 2 }),
+    );
+    expect(await syncData(deps, current)).toBe(current);
+    expect(deps.writeStored).not.toHaveBeenCalled();
+  });
+
+  it('returns current when writeStored rejects', async () => {
+    const deps = makeDeps(async () => JSON.stringify(makeManifest('v1')));
+    deps.writeStored.mockRejectedValue(new Error('disco lleno'));
+    expect(await syncData(deps, current)).toBe(current);
+  });
+
+  it('returns current on bad JSON in the manifest', async () => {
+    const deps = makeDeps(async () => '{"version":');
+    expect(await syncData(deps, current)).toBe(current);
+    expect(deps.writeStored).not.toHaveBeenCalled();
+  });
+
+  it('returns current on bad JSON in data.json', async () => {
+    const deps = makeDeps(async (url) => (url.endsWith('manifest.json') ? JSON.stringify(makeManifest('v2')) : '{"lines":'));
+    expect(await syncData(deps, current)).toBe(current);
+    expect(deps.writeStored).not.toHaveBeenCalled();
+  });
+
+  it('rejects a manifest with another schema', async () => {
+    const deps = makeDeps(async () => JSON.stringify({ ...makeManifest('v2'), schemaVersion: 2 }));
+    expect(await syncData(deps, current)).toBe(current);
+    expect(deps.fetchText).toHaveBeenCalledTimes(1);
+    expect(deps.writeStored).not.toHaveBeenCalled();
+  });
+
+  it('rejects data with schemaVersion 1 but without lines', async () => {
+    const { lines: _lines, ...noLines } = makeDataset();
+    expect(parseStored(JSON.stringify({ ...current, data: noLines }))).toBeNull();
+    const deps = makeDeps(async (url) =>
+      url.endsWith('manifest.json') ? JSON.stringify(makeManifest('v2')) : JSON.stringify(noLines),
     );
     expect(await syncData(deps, current)).toBe(current);
     expect(deps.writeStored).not.toHaveBeenCalled();

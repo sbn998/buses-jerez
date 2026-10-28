@@ -3,7 +3,7 @@
 import { File, Paths } from 'expo-file-system';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
-import { parseStored, pickDataset, syncData, type PickedData, type Stored } from '@/lib/dataSync';
+import { parseStored, pickDataset, syncData, warnDev, type PickedData, type Stored } from '@/lib/dataSync';
 import bundledJson from './bundled.json';
 import type { Dataset } from './schema';
 
@@ -20,7 +20,8 @@ async function readStored(): Promise<string | null> {
   try {
     const f = cacheFile();
     return f.exists ? await f.text() : null;
-  } catch {
+  } catch (e) {
+    warnDev('No se pudo leer el archivo de datos guardado:', e);
     return null;
   }
 }
