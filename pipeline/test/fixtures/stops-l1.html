@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="es-ES">
+<head>
+
+<meta charset="utf-8">
+<!-- 
+	Based on the TYPO3 Bootstrap Package by Benjamin Kott - https://www.bootstrap-package.com/
+
+	This website is powered by TYPO3 - inspiring people to share!
+	TYPO3 is a free open source Content Management Framework initially created by Kasper Skaarhoj and licensed under GNU/GPL.
+	TYPO3 is copyright 1998-2026 of Kasper Skaarhoj. Extensions are copyright of their respective owners.
+	Information and contribution at https://typo3.org/
+-->
+
+
+<link rel="icon" href="/favicon.ico" type="image/x-ms-bmp">
+<title>listar_c_consultas</title>
+<meta http-equiv="x-ua-compatible" content="IE=edge" />
+<meta name="generator" content="TYPO3 CMS" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="index,follow" />
+<meta name="twitter:card" content="summary" />
+<meta name="apple-mobile-web-app-capable" content="no" />
+<meta name="google" content="notranslate" />
+
+<link rel="stylesheet" href="/typo3temp/assets/compressed/merged-76e80a289daffb4dcbf729242795cda0-79289aee5f40facabed6f70c4e9bffb7.css?1792755820" media="all">
+
+<link rel="stylesheet" href="/typo3temp/assets/compressed/32f6eacc0e603977c36ebc5507291006-39f2f059626042000449341deef74ac6.css?1792755792" media="all">
+<link rel="stylesheet" href="/typo3temp/assets/compressed/merged-bc0e51530c51308e8ffb733c0919eb8b-8269f92ef99e3464794a39467ab033dc.css?1792755886" media="all">
+
+
+
+<script src="/typo3temp/assets/compressed/merged-4db9d38e720a25e75bbacc47e16b4a76-8fa92e3ab1d45c728ad1c185e97db5a4.js?1792755798"></script>
+
+<script src="/typo3temp/assets/compressed/merged-7cfca315e751f1c9f1b945e4f9a93fbf-3d14aee33529422a6c5a79baec016d9e.js?1792755803"></script>
+<script src="/typo3conf/ext/ns_guestbook/Resources/Public/ckeditor/ckeditor.js?1730557370"></script>
+
+<script>
+/*<![CDATA[*/
+/*TS_inlineJS*/
+
+
+
+/*]]>*/
+</script>
+
+
+<script>
+try {
+    localStorage.removeItem('rd_chat_open_v1');
+} catch (e) {}
+</script>
+<link rel="canonical" href="https://www.comujesa.es/autobuses-urbanos/paradas-y-horarios/listar-c-consultas"/>
+
+</head>
+<body id="p4924" class="page-listar_consultas pagelevel-3 language-0 backendlayout-default layout-default">
+<H1 style="display: none">listar_c_consultas: Ayuntamiento de Jerez - Página oficial</H1>
+
+<div class="section section-default"><div id="c13297" class="frame frame-size-default frame-default frame-type-list frame-layout-default frame-background-none frame-no-backgroundimage frame-space-before-none frame-space-after-none"><div class="frame-group-container"><div class="frame-group-inner"><div class="frame-container frame-container-default"><div class="frame-inner">
+<div class="tx-jn-phpcontentelement">
+	
+	
+
+	
+		
+<br />
+<select style="width:auto; max-width:100%;" name="paradas" id="first-choice" onchange="realizaProceso(jQuery('#first-choice').val(),jQuery('#linea_seleccion').val());return false;" >
+<option selected value='0'>Seleccione parada</option><option value='343'>Plaza Esteve Esteve</option><option value='453'>Villamarta Única</option><option value='30'>Arcos Al final de C/ Arcos</option><option value='335'>Pio XII De C/ Arcos a C/ Medina. Única</option><option value='138'>Descalzos Dirección San Telmo</option><option value='352'>Pz. Madre Dios Subiendo la Plaza</option><option value='276'>C/Manuel Moneo Hacia San Telmo</option><option value='68'>Bajada San Telmo Hacia Balneario</option><option value='120'>Cerrofruto Hacia Balneario</option><option value='128'>Constitución Única</option><option value='307'>Nueva Cartuja Única</option><option value='418'>Solidaridad Única</option><option value='449'>Vallesequillo II Única</option><option value='302'>Moreno Mendoza Subiendo</option><option value='19'>Amistad Única</option><option value='401'>San Telmo Única</option><option value='164'>Ermita San Telmo Sentido Madre de Dios</option><option value='277'>C/Manuel Moneo Hacia Centro</option><option value='139'>Diego F. Herrera Sentido Angustias</option><option value='130'>Angustias Canal Sur Única</option></select>
+
+
+
+	
+
+</div></div></div></div></div></div></div>
+
+
+
+
+
+
+
+
+<div id="cookieman-modal"
+     data-cookieman-showonce="1"
+     data-cookieman-settings="{&quot;groups&quot;:{&quot;mandatory&quot;:{&quot;preselected&quot;:true,&quot;disabled&quot;:true,&quot;trackingObjects&quot;:[&quot;CookieConsent&quot;]},&quot;analytics&quot;:{&quot;trackingObjects&quot;:[&quot;GoogleAnalytics&quot;]}},&quot;trackingObjects&quot;:{&quot;CookieConsent&quot;:{&quot;show&quot;:{&quot;CookieConsent&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;year&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Website&quot;}}},&quot;Bing&quot;:{&quot;inject&quot;:&quot;            \u003Cscript data-what=\&quot;Bing\&quot; src=\&quot;\/typo3conf\/ext\/cookieman\/Resources\/Public\/Js\/Injects\/example-inject.js\&quot;\u003E\u003C\/script\u003E&quot;,&quot;show&quot;:{&quot;MUID&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;year&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Bing&quot;},&quot;MUIDB&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;year&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Bing&quot;}}},&quot;FacebookPixel&quot;:{&quot;inject&quot;:&quot;            \u003Cscript data-what=\&quot;FacebookPixel\&quot; src=\&quot;\/typo3conf\/ext\/cookieman\/Resources\/Public\/Js\/Injects\/example-inject.js\&quot;\u003E\u003C\/script\u003E&quot;,&quot;show&quot;:{&quot;_fbp&quot;:{&quot;duration&quot;:&quot;28&quot;,&quot;durationUnit&quot;:&quot;days&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;facebook&quot;},&quot;facebookPixel&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;none&quot;,&quot;type&quot;:&quot;pixel&quot;,&quot;provider&quot;:&quot;facebook&quot;}}},&quot;GoogleAnalytics&quot;:{&quot;inject&quot;:&quot;     \r\n\u003Cscript async src=\&quot;https:\/\/www.googletagmanager.com\/gtag\/js?id=G-LRP6HWV75K\&quot;\u003E\u003C\/script\u003E\r\n\u003Cscript\u003E\r\n  window.dataLayer = window.dataLayer || [];\r\n  function gtag(){dataLayer.push(arguments);}\r\n  gtag(&#039;js&#039;, new Date());\r\n\r\n  gtag(&#039;config&#039;, &#039;G-LRP6HWV75K&#039;);\r\n\u003C\/script\u003E\r&quot;,&quot;show&quot;:{&quot;_ga&quot;:{&quot;duration&quot;:&quot;2&quot;,&quot;durationUnit&quot;:&quot;years&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;_gat&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;day&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;,&quot;htmlCookieRemovalPattern&quot;:&quot;^_gat(?:_UA\\-\\d+\\-\\d+)?$&quot;},&quot;_gid&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;day&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;_ga_--container-id--&quot;:{&quot;duration&quot;:&quot;2&quot;,&quot;durationUnit&quot;:&quot;years&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;,&quot;htmlCookieRemovalPattern&quot;:&quot;^_ga_GTM\\-\\d+$&quot;},&quot;_gac_--property-id--&quot;:{&quot;duration&quot;:&quot;3&quot;,&quot;durationUnit&quot;:&quot;months&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;,&quot;htmlCookieRemovalPattern&quot;:&quot;^_gac_UA\\-\\d+\\-\\d+$&quot;}}},&quot;GoogleMaps&quot;:{&quot;inject&quot;:&quot;            \u003Cscript data-what=\&quot;GoogleMaps\&quot; src=\&quot;\/typo3conf\/ext\/cookieman\/Resources\/Public\/Js\/Injects\/example-inject.js\&quot;\u003E\u003C\/script\u003E&quot;,&quot;show&quot;:{&quot;GoogleMaps&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;none&quot;,&quot;type&quot;:&quot;connection&quot;,&quot;provider&quot;:&quot;Google&quot;}}},&quot;GoogleTagManager&quot;:{&quot;inject&quot;:&quot;            \u003Cscript data-what=\&quot;GoogleTagManager\&quot; src=\&quot;\/typo3conf\/ext\/cookieman\/Resources\/Public\/Js\/Injects\/example-inject.js\&quot;\u003E\u003C\/script\u003E&quot;,&quot;show&quot;:{&quot;_gcl_au&quot;:{&quot;duration&quot;:&quot;3&quot;,&quot;durationUnit&quot;:&quot;months&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;AMP_TOKEN&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;year&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;},&quot;_dc_gtm_--property-id--&quot;:{&quot;duration&quot;:&quot;2&quot;,&quot;durationUnit&quot;:&quot;years&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Google&quot;,&quot;htmlCookieRemovalPattern&quot;:&quot;^_dc_gtm_UA\\-\\d+\\-\\d+$&quot;}}},&quot;Matomo&quot;:{&quot;inject&quot;:&quot;            \u003Cscript data-what=\&quot;Matomo\&quot; src=\&quot;\/typo3conf\/ext\/cookieman\/Resources\/Public\/Js\/Injects\/example-inject.js\&quot;\u003E\u003C\/script\u003E&quot;,&quot;show&quot;:{&quot;_pk_id&quot;:{&quot;duration&quot;:&quot;13&quot;,&quot;durationUnit&quot;:&quot;months&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Matomo&quot;,&quot;htmlCookieRemovalPattern&quot;:&quot;^_pk_id\\.\\d+\\.[a-fA-F0-9]+$&quot;},&quot;_pk_ref&quot;:{&quot;duration&quot;:&quot;6&quot;,&quot;durationUnit&quot;:&quot;months&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Matomo&quot;,&quot;htmlCookieRemovalPattern&quot;:&quot;^_pk_ref\\.\\d+\\.[a-fA-F0-9]+$&quot;},&quot;_pk_ses&quot;:{&quot;duration&quot;:&quot;30&quot;,&quot;durationUnit&quot;:&quot;minutes&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Matomo&quot;,&quot;htmlCookieRemovalPattern&quot;:&quot;^_pk_ses\\.\\d+\\.[a-fA-F0-9]+$&quot;},&quot;_pk_cvar&quot;:{&quot;duration&quot;:&quot;30&quot;,&quot;durationUnit&quot;:&quot;minutes&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Matomo&quot;,&quot;htmlCookieRemovalPattern&quot;:&quot;^_pk_cvar\\.\\d+\\.[a-fA-F0-9]+$&quot;},&quot;_pk_hsr&quot;:{&quot;duration&quot;:&quot;30&quot;,&quot;durationUnit&quot;:&quot;minutes&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Matomo&quot;,&quot;htmlCookieRemovalPattern&quot;:&quot;^_pk_hsr\\.\\d+\\.[a-fA-F0-9]+$&quot;}}},&quot;MicrosoftForms&quot;:{&quot;inject&quot;:&quot;            \u003Cscript data-what=\&quot;MicrosoftForms\&quot; src=\&quot;\/typo3conf\/ext\/cookieman\/Resources\/Public\/Js\/Injects\/example-inject.js\&quot;\u003E\u003C\/script\u003E&quot;,&quot;show&quot;:{&quot;__RequestVerificationToken&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;session&quot;,&quot;type&quot;:&quot;cookie_http&quot;,&quot;provider&quot;:&quot;Microsoft&quot;},&quot;AADNonce.forms&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;session&quot;,&quot;type&quot;:&quot;cookie_http&quot;,&quot;provider&quot;:&quot;Microsoft&quot;},&quot;DcLcid&quot;:{&quot;duration&quot;:&quot;3&quot;,&quot;durationUnit&quot;:&quot;months&quot;,&quot;type&quot;:&quot;cookie_http&quot;,&quot;provider&quot;:&quot;Microsoft&quot;},&quot;MSFPC&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;year&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Microsoft&quot;},&quot;MUID&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;year&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Microsoft&quot;}}},&quot;MicrosoftStream&quot;:{&quot;inject&quot;:&quot;            \u003Cscript data-what=\&quot;MicrosoftStrean\&quot; src=\&quot;\/typo3conf\/ext\/cookieman\/Resources\/Public\/Js\/Injects\/example-inject.js\&quot;\u003E\u003C\/script\u003E&quot;,&quot;show&quot;:{&quot;MicrosoftStream&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;none&quot;,&quot;type&quot;:&quot;connection&quot;,&quot;provider&quot;:&quot;MicrosoftStream&quot;},&quot;Signature_Api&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;session&quot;,&quot;type&quot;:&quot;cookie_http&quot;,&quot;provider&quot;:&quot;MicrosoftStream&quot;},&quot;Authorization_Api&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;session&quot;,&quot;type&quot;:&quot;cookie_http&quot;,&quot;provider&quot;:&quot;MicrosoftStream&quot;},&quot;RedirectToThinEmbed&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;session&quot;,&quot;type&quot;:&quot;cookie_http&quot;,&quot;provider&quot;:&quot;MicrosoftStream&quot;},&quot;UserSession_Api&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;session&quot;,&quot;type&quot;:&quot;cookie_http&quot;,&quot;provider&quot;:&quot;MicrosoftStream&quot;},&quot;wfeSessionId&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;session&quot;,&quot;type&quot;:&quot;cookie_http&quot;,&quot;provider&quot;:&quot;MicrosoftStream&quot;}}},&quot;Slideshare&quot;:{&quot;inject&quot;:&quot;            \u003Cscript data-what=\&quot;Slideshare\&quot; src=\&quot;\/typo3conf\/ext\/cookieman\/Resources\/Public\/Js\/Injects\/example-inject.js\&quot;\u003E\u003C\/script\u003E&quot;,&quot;show&quot;:{&quot;UID&quot;:{&quot;duration&quot;:&quot;2&quot;,&quot;durationUnit&quot;:&quot;years&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Slideshare&quot;},&quot;UIDR&quot;:{&quot;duration&quot;:&quot;2&quot;,&quot;durationUnit&quot;:&quot;years&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Slideshare&quot;},&quot;bcookie&quot;:{&quot;duration&quot;:&quot;2&quot;,&quot;durationUnit&quot;:&quot;years&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Slideshare&quot;},&quot;lang&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;session&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Slideshare&quot;}}},&quot;Vimeo&quot;:{&quot;show&quot;:{&quot;__cf_bm&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;year&quot;,&quot;type&quot;:&quot;cookie_http&quot;,&quot;provider&quot;:&quot;Vimeo&quot;},&quot;OptanonAlertBoxClosed&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;year&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Vimeo&quot;},&quot;OptanonConsent&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;year&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Vimeo&quot;},&quot;player&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;year&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Vimeo&quot;},&quot;vuid&quot;:{&quot;duration&quot;:&quot;2&quot;,&quot;durationUnit&quot;:&quot;years&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Vimeo&quot;},&quot;_abexps&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;year&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Vimeo&quot;},&quot;continuous_play_v3&quot;:{&quot;duration&quot;:&quot;2&quot;,&quot;durationUnit&quot;:&quot;years&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;Vimeo&quot;}}},&quot;YouTube&quot;:{&quot;inject&quot;:&quot;            \u003Cscript data-what=\&quot;YouTube\&quot; src=\&quot;\/typo3conf\/ext\/cookieman\/Resources\/Public\/Js\/Injects\/example-inject.js\&quot;\u003E\u003C\/script\u003E&quot;,&quot;show&quot;:{&quot;YouTube&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;none&quot;,&quot;type&quot;:&quot;connection&quot;,&quot;provider&quot;:&quot;YouTube&quot;}}},&quot;etracker&quot;:{&quot;inject&quot;:&quot;            \u003Cscript\u003E\n                _etracker.enableCookies()\n            \u003C\/script\u003E&quot;,&quot;show&quot;:{&quot;cntcookie&quot;:{&quot;duration&quot;:&quot;4&quot;,&quot;durationUnit&quot;:&quot;years&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;GS3_v&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;years&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;_et_coid&quot;:{&quot;duration&quot;:&quot;2&quot;,&quot;durationUnit&quot;:&quot;years&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;et_oi_v2&quot;:{&quot;duration&quot;:&quot;50&quot;,&quot;durationUnit&quot;:&quot;years&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;et_oip&quot;:{&quot;duration&quot;:&quot;50&quot;,&quot;durationUnit&quot;:&quot;years&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;et_allow_cookies&quot;:{&quot;duration&quot;:&quot;16&quot;,&quot;durationUnit&quot;:&quot;months&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;isSdEnabled&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;day&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;BT_ctst&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;session&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;BT_sdc&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;session&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;BT_pdc&quot;:{&quot;duration&quot;:&quot;1&quot;,&quot;durationUnit&quot;:&quot;year&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;BT_ecl&quot;:{&quot;duration&quot;:&quot;30&quot;,&quot;durationUnit&quot;:&quot;days&quot;,&quot;type&quot;:&quot;cookie_http+html&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;et_scroll_depth&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;&quot;,&quot;type&quot;:&quot;localstorage&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;targetingAPISession&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;&quot;,&quot;type&quot;:&quot;localstorage&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;_et_coid--localstorage&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;&quot;,&quot;type&quot;:&quot;localstorage&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;et_oi_v2--localstorage&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;&quot;,&quot;type&quot;:&quot;localstorage&quot;,&quot;provider&quot;:&quot;etracker&quot;},&quot;et_oip--localstorage&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;&quot;,&quot;type&quot;:&quot;localstorage&quot;,&quot;provider&quot;:&quot;etracker&quot;}}},&quot;fe_typo_user&quot;:{&quot;show&quot;:{&quot;fe_typo_user&quot;:{&quot;duration&quot;:&quot;&quot;,&quot;durationUnit&quot;:&quot;session&quot;,&quot;type&quot;:&quot;cookie_http&quot;,&quot;provider&quot;:&quot;Website&quot;}}}}}"
+     class="modal fade" tabindex="-1" role="dialog"
+><div class="modal-dialog modal-xl"><div class="modal-content"><div class="modal-header"><div class="h5 modal-title" id="cookieman-modal-title">
+                    Acerca de las cookies
+                </div></div><div class="modal-body"><p>
+                    Este sitio web utiliza cookies. Tienen dos funciones: por un lado, proporcionan una funcionalidad básica para este sitio web. Por otro lado, nos permiten mejorar nuestro contenido para usted al guardar y analizar datos de usuario anonimizados. Puede obtener más información <a href="https://www.jerez.es/politica-de-cookies"
+    >sobre nuestra Política de cookies aquí</a>.
+                </p><button class="btn btn-secondary btn-sm float-right collapsed pr-5"
+                        type="button" data-bs-toggle="collapse"
+                        data-bs-target="#cookieman-settings" aria-expanded="false" aria-controls="cookieman-settings">
+                    Configuración de cookies
+                </button><div class="clearfix"></div><div class="collapse" id="cookieman-settings"><form data-cookieman-form class="mt-3"
+                          data-cookieman-dnt-enabled="You already opted out of user tracking via your &lt;a target=&quot;_blank&quot; rel=&quot;noopener&quot; href=&quot;https://en.wikipedia.org/wiki/Do_Not_Track&quot;&gt;browser&#039;s Do-not-track function&lt;/a&gt;. We accept that. You can affect this via your browser&#039;s settings."
+                    ><div class="accordion" id="cookieman-acco"><div class="accordion-item"><div class="h2 accordion-header" id="cookieman-acco-h-mandatory"><button type="button" class="accordion-button collapsed" role="button" data-bs-toggle="collapse"
+                                         data-bs-target="#cookieman-acco-mandatory"
+                                         aria-expanded="false" aria-controls="cookieman-acco-mandatory">
+                                        Obligatorio
+                                      </button></div><div id="cookieman-acco-mandatory" class="accordion-collapse collapse"
+                                         aria-labelledby="cookieman-acco-h-mandatory"
+                                         data-bs-parent="#cookieman-acco"><div class="accordion-body"><div class="alert alert-primary"><div class="form-check"><input class="form-check-input" type="checkbox" value="" id="mandatory" name="mandatory"
+                                                       checked="checked"
+                                                disabled="disabled"
+                                                ><label class="form-check-label" for="mandatory">
+                                                    Aceptar estas cookies.
+                                                </label></div></div><p>
+                                            Estas cookies son necesarias para un buen funcionamiento de nuestro sitio web.
+                                        </p><div class="table-responsive"><table class="table table-hover table-sm"><thead><tr><th>Nombre</th><th>Objetivo</th><th>Tiempo de Vida</th><th>Tipo</th><th>Proveedor</th></tr></thead><tbody><tr><td>
+                CookieConsent
+            </td><td>
+                Guarda tu consentimiento para el uso de cookies.
+            </td><td>
+                1
+                año
+            </td><td>
+                HTML
+            </td><td>
+                
+                    Website
+                
+            </td></tr></tbody></table></div></div></div></div><div class="accordion-item"><div class="h2 accordion-header" id="cookieman-acco-h-analytics"><button type="button" class="accordion-button collapsed" role="button" data-bs-toggle="collapse"
+                                         data-bs-target="#cookieman-acco-analytics"
+                                         aria-expanded="false" aria-controls="cookieman-acco-analytics">
+                                        analytics
+                                      </button></div><div id="cookieman-acco-analytics" class="accordion-collapse collapse"
+                                         aria-labelledby="cookieman-acco-h-analytics"
+                                         data-bs-parent="#cookieman-acco"><div class="accordion-body"><div class="alert alert-primary"><div class="form-check"><input class="form-check-input" type="checkbox" value="" id="analytics" name="analytics"
+                                                       
+                                                
+                                                ><label class="form-check-label" for="analytics">
+                                                    Aceptar estas cookies.
+                                                </label></div></div><p></p><div class="table-responsive"><table class="table table-hover table-sm"><thead><tr><th>Nombre</th><th>Objetivo</th><th>Tiempo de Vida</th><th>Tipo</th><th>Proveedor</th></tr></thead><tbody><tr><td>
+                _ga
+            </td><td>
+                Usado para distinguir usuarios.
+            </td><td>
+                2
+                años
+            </td><td>
+                HTML
+            </td><td>
+                
+                    Google
+                
+            </td></tr><tr><td>
+                _gat
+            </td><td>
+                Se utiliza para acelerar la tasa de solicitud.
+            </td><td>
+                1
+                día
+            </td><td>
+                HTML
+            </td><td>
+                
+                    Google
+                
+            </td></tr><tr><td>
+                _gid
+            </td><td>
+                Utilizado para distinguir usuarios.
+            </td><td>
+                1
+                día
+            </td><td>
+                HTML
+            </td><td>
+                
+                    Google
+                
+            </td></tr><tr><td>
+                _ga_--container-id--
+            </td><td>
+                Mantiene el estado de sesion persistente.
+            </td><td>
+                2
+                años
+            </td><td>
+                HTML
+            </td><td>
+                
+                    Google
+                
+            </td></tr><tr><td>
+                _gac_--property-id--
+            </td><td>
+                Contiene información relacionada con la campaña para el usuario. Si ha vinculado sus cuentas de Google Analytics y Google Ads, las etiquetas de conversión del sitio web de Google Ads leerán esta cookie a menos que se excluya.
+            </td><td>
+                3
+                meses
+            </td><td>
+                HTML
+            </td><td>
+                
+                    Google
+                
+            </td></tr></tbody></table></div></div></div></div></div></form></div></div><div class="modal-footer"><button
+                    data-cookieman-accept-none data-cookieman-save
+                    class="btn btn-secondary"
+                >
+                    Rechazar todas las cookies
+                </button><button hidden
+                    data-cookieman-save
+                    class="btn btn-light"
+                >
+                    Aceptar sólo cookies seleccionadas
+                </button><button
+                    data-cookieman-accept-all data-cookieman-save
+                    class="btn btn-primary"
+                >
+                    Aceptar todas cookies
+                </button></div></div></div></div>
+<script src="/typo3temp/assets/compressed/merged-d3b9b2adf87e4cf7efc78c56b060be8e-54b46f3b035083e2a449c9ef9390dcc6.js?1792755904"></script>
+
+<script src="/typo3temp/assets/compressed/merged-efc1277351d5512420633469024ba1e3-798aaaaf1ca8ca1871947f8ab29e9450.js?1792755934"></script>
+
+<script>
+/*<![CDATA[*/
+/*TS_inlineFooter*/
+					var typeOfSlickUids = typeof slickUids;
+					if( typeOfSlickUids != 'undefined' ) {
+						if(Array.isArray(slickUids)){
+							$(document).ready(function () {
+								for (var i = 0; i < slickUids.length; i++) {
+									var boolSlickRandomizeX = eval("boolSlickRandomize" + slickUids[i]);
+									//alert(boolSlickRandomizeX);
+									if( boolSlickRandomizeX == true ) {
+										$('#slickid-' + slickUids[i]).randomize();
+									} 
+								}
+							});
+						}
+					}
+					$(document).ready(function () {
+						if( (typeof obj === "object") && (obj !== null) ) {
+							var sortedKeys = Object.keys(obj).sort();
+							//alert( sortedKeys[0] );
+							if(Array.isArray(sortedKeys)){
+								for (var i = 0; i < sortedKeys.length; i++) {
+									obj[sortedKeys[i]]();
+								}
+							}
+						}
+					});
+					
+      function pagelistDetectWidth(a){
+        var container = document.getElementsByClassName(a);
+        for (var i = 0; i < container.length; ++i) {
+          var item = container[i];
+          var width = container[i].clientWidth;
+          if (width < 920){
+            item.classList.add('break-two');
+          } else {
+            item.classList.remove('break-two');
+          }
+          if (width < 580) {
+            item.classList.add('break-one');
+          } else {
+            item.classList.remove('break-one');
+          }
+        }
+      }
+      pagelistDetectWidth('pagelist cards');
+      window.addEventListener("resize", function(){
+        pagelistDetectWidth('pagelist cards');
+      });
+
+/*]]>*/
+</script>
+
+
+</body>
+</html>

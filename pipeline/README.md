@@ -25,3 +25,6 @@ Las piezas se van añadiendo conforme se construyen. Cada archivo empieza con un
 |---|---|
 | `../src/data/schema.ts` | Define la forma exacta de los datos (el contrato con la app). |
 | `src/http.ts` | Descarga páginas de la web con cuidado: espera entre peticiones, reintenta si falla y se identifica. |
+| `src/comujesa/endpoints.ts` | Guarda todas las direcciones de la web de Comujesa en un solo sitio. |
+| `src/comujesa/parseStops.ts` | Lee la lista de paradas (con su código) de una línea. |
+| `src/comujesa/parseTimes.ts` | Lee las horas de paso de una parada: laborables, sábados y festivos. |
