@@ -41,7 +41,8 @@
           "locationWhenInUsePermission": "Para mostrarte las paradas más cercanas"
         }
       ],
-      "expo-dev-client"
+      "expo-dev-client",
+      "@maplibre/maplibre-react-native"
     ],
     "experiments": {
       "typedRoutes": true,

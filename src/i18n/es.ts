@@ -60,6 +60,9 @@ const es = {
     notFound: 'Línea no encontrada',
     back: 'Volver',
   },
+  map: {
+    unavailable: 'Mapa no disponible sin conexión',
+  },
   common: {
     comingSoon: 'Próximamente',
   },

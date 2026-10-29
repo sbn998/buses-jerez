@@ -16,6 +16,7 @@
 !/README.md
 !/pipeline/
 !/.github/
+!/__mocks__/
 
 # Secretos y claves: nunca, aunque estén dentro de una carpeta permitida.
 .env

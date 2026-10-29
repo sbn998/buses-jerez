@@ -65,6 +65,9 @@ const en: Textos = {
     notFound: 'Line not found',
     back: 'Go back',
   },
+  map: {
+    unavailable: 'Map unavailable offline',
+  },
   common: {
     comingSoon: 'Coming soon',
   },
