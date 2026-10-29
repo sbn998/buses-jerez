@@ -124,4 +124,12 @@ describe('pantalla Cerca de mí', () => {
     await renderScreen();
     expect(screen.getByText('Buscando tu posición…')).toBeTruthy();
   });
+
+  it('unavailable: avisa con honestidad y ofrece reintentar', async () => {
+    mockLocation = { status: 'unavailable', coords: null, retry: jest.fn() };
+    await renderScreen();
+    expect(screen.getByText(/No se puede obtener tu ubicación/)).toBeTruthy();
+    await fireEvent.press(screen.getByText('Permitir ubicación'));
+    expect(mockLocation.retry).toHaveBeenCalledTimes(1);
+  });
 });

@@ -3,7 +3,7 @@
 import * as Location from 'expo-location';
 import { useCallback, useEffect, useState } from 'react';
 
-export type LocationStatus = 'asking' | 'denied' | 'blocked' | 'waiting' | 'ready';
+export type LocationStatus = 'asking' | 'denied' | 'blocked' | 'waiting' | 'ready' | 'unavailable';
 
 export interface UseLocationResult {
   status: LocationStatus;
@@ -22,27 +22,36 @@ export function useLocation(): UseLocationResult {
     let cancelled = false;
     let subscription: Location.LocationSubscription | null = null;
 
+    // Al empezar de nuevo (por ejemplo con "reintentar") se olvida la posición anterior.
+    setCoords(null);
+    setStatus('asking');
+
     (async () => {
-      setStatus('asking');
-      const permission = await Location.requestForegroundPermissionsAsync();
-      if (cancelled) return;
-      if (!permission.granted) {
-        // Si Android ya no deja volver a preguntar, solo se puede arreglar desde los ajustes.
-        setStatus(permission.canAskAgain ? 'denied' : 'blocked');
-        return;
+      try {
+        const permission = await Location.requestForegroundPermissionsAsync();
+        if (cancelled) return;
+        if (!permission.granted) {
+          // Si Android ya no deja volver a preguntar, solo se puede arreglar desde los ajustes.
+          setStatus(permission.canAskAgain ? 'denied' : 'blocked');
+          return;
+        }
+        setStatus('waiting');
+        const sub = await Location.watchPositionAsync(
+          { accuracy: Location.Accuracy.Balanced, distanceInterval: 25 },
+          (position) => {
+            if (cancelled) return;
+            setCoords({ lat: position.coords.latitude, lon: position.coords.longitude });
+            setStatus('ready');
+          },
+        );
+        // Si la pantalla se cerró mientras esperábamos, se libera la suscripción al momento.
+        if (cancelled) sub.remove();
+        else subscription = sub;
+      } catch (error) {
+        // Ubicación del móvil apagada o error del sistema: se avisa en vez de quedarse esperando.
+        if (__DEV__) console.warn('No se pudo obtener la ubicación', error);
+        if (!cancelled) setStatus('unavailable');
       }
-      setStatus('waiting');
-      const sub = await Location.watchPositionAsync(
-        { accuracy: Location.Accuracy.Balanced, distanceInterval: 25 },
-        (position) => {
-          if (cancelled) return;
-          setCoords({ lat: position.coords.latitude, lon: position.coords.longitude });
-          setStatus('ready');
-        },
-      );
-      // Si la pantalla se cerró mientras esperábamos, se libera la suscripción al momento.
-      if (cancelled) sub.remove();
-      else subscription = sub;
     })();
 
     return () => {

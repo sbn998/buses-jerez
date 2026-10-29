@@ -45,6 +45,7 @@ const es = {
     asking: 'Pidiendo permiso…',
     waiting: 'Buscando tu posición…',
     deniedText: 'Necesitamos tu ubicación para mostrarte las paradas más cercanas. Solo se usa en tu móvil.',
+    unavailableText: "No se puede obtener tu ubicación. Comprueba que la ubicación del móvil está activada.",
     allowLocation: 'Permitir ubicación',
     blockedText: 'El permiso de ubicación está desactivado. Actívalo en los ajustes del móvil para ver las paradas cercanas.',
     openSettings: 'Abrir ajustes',

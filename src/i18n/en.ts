@@ -50,6 +50,7 @@ const en: Textos = {
     asking: 'Asking for permission…',
     waiting: 'Finding your position…',
     deniedText: 'We need your location to show you the nearest stops. It is only used on your phone.',
+    unavailableText: "Can't get your location. Check that location is turned on.",
     allowLocation: 'Allow location',
     blockedText: 'Location permission is turned off. Turn it on in your phone settings to see nearby stops.',
     openSettings: 'Open settings',

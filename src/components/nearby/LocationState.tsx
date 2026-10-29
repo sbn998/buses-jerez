@@ -1,5 +1,5 @@
 // Aviso que se muestra en Cerca de mí mientras no hay posición: pidiendo permiso, permiso
-// denegado (botón para volver a pedirlo), permiso bloqueado (botón a los ajustes) o buscando.
+// denegado o no disponible (botón para volver a intentarlo), permiso bloqueado (botón a los ajustes) o buscando.
 import { useTranslation } from 'react-i18next';
 import { Linking, Pressable, StyleSheet, View } from 'react-native';
 
@@ -22,10 +22,15 @@ export function LocationState({ status, onRetry }: Props) {
   }
 
   const isBlocked = status === 'blocked';
+  const bodyText = isBlocked
+    ? t('nearby.blockedText')
+    : status === 'unavailable'
+      ? t('nearby.unavailableText')
+      : t('nearby.deniedText');
   const buttonLabel = isBlocked ? t('nearby.openSettings') : t('nearby.allowLocation');
   return (
     <View style={styles.box}>
-      <ThemedText>{isBlocked ? t('nearby.blockedText') : t('nearby.deniedText')}</ThemedText>
+      <ThemedText>{bodyText}</ThemedText>
       <Pressable
         onPress={isBlocked ? () => Linking.openSettings() : onRetry}
         accessibilityRole="button"
