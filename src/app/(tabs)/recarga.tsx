@@ -10,19 +10,19 @@ import { TopUpList } from '@/components/topup/TopUpList';
 import { BottomTabInset, Spacing } from '@/constants/theme';
 import { useData } from '@/data/DataProvider';
 import { useTheme } from '@/hooks/use-theme';
-import { groupTopUp, TOPUP_URL } from '@/lib/topup';
+import bundledJson from '@/data/bundled.json';
+import type { Dataset } from '@/data/schema';
+import { formatCheckedDate, groupTopUp, TOPUP_URL, topUpFor } from '@/lib/topup';
 
 export default function Recarga() {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const { data } = useData();
-  const points = data.topUpPoints;
+  // Si los datos descargados son antiguos y no traen puntos, se usa la copia incluida en la app.
+  const { points, checked: checkedText } = topUpFor(data, bundledJson as unknown as Dataset);
   const groups = useMemo(() => (points ? groupTopUp(points) : []), [points]);
-
-  // "AAAA-MM-DD" → fecha local. Se construye a mano para que la zona horaria no cambie el día.
-  const checked = data.topUpChecked
-    ? (([y, m, d]) => new Date(y, m - 1, d).toLocaleDateString(i18n.language))(data.topUpChecked.split('-').map(Number))
-    : null;
+  // Fecha legible, o null si no se puede leer (entonces no se escribe "revisado el …").
+  const checked = formatCheckedDate(checkedText, i18n.language);
 
   const link = (
     <Pressable onPress={() => Linking.openURL(TOPUP_URL)} accessibilityRole="link">

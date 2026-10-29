@@ -62,7 +62,17 @@ describe('validate con topUpPoints', () => {
   }
 
   it('acepta los puntos reales', () => {
-    expect(validate({ ...dataset(), topUpPoints: loadTopUp(real) }, null)).toEqual([]);
+    expect(validate({ ...dataset(), topUpPoints: loadTopUp(real), topUpChecked: real.checked }, null)).toEqual([]);
+  });
+  it('exige topUpChecked cuando hay puntos, y que sea una fecha AAAA-MM-DD real', () => {
+    const ok = { name: 'A', address: 'B', zone: 'centro' as const };
+    const withPoints = { ...dataset(), topUpPoints: [ok] };
+    expect(validate(withPoints, null).join()).toMatch(/topUpChecked/);
+    expect(validate({ ...withPoints, topUpChecked: '29/10/2026' }, null).join()).toMatch(/topUpChecked/);
+    expect(validate({ ...withPoints, topUpChecked: '2026-02-30' }, null).join()).toMatch(/topUpChecked/);
+    expect(validate({ ...withPoints, topUpChecked: '2026-10-29' }, null)).toEqual([]);
+    // Una fecha mal puesta se rechaza aunque no haya puntos.
+    expect(validate({ ...dataset(), topUpChecked: 'ayer' }, null).join()).toMatch(/topUpChecked/);
   });
   it('acepta datos sin topUpPoints', () => {
     expect(validate(dataset(), null)).toEqual([]);

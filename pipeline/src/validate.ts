@@ -22,6 +22,14 @@ const MAX_TIMES_DROP = 0.2;
 const MAX_TIMES_RISE = 0.3;
 const MAX_STOPS_DROP = 0.1;
 
+/** ¿Es una fecha AAAA-MM-DD que existe de verdad? (rechaza "2026-02-30" y "29/10/2026") */
+const isRealDate = (text: string) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return false;
+  const [y, m, d] = text.split('-').map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d));
+  return date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d;
+};
+
 const countTimes = (ds: Dataset) =>
   ds.lines.reduce(
     (sum, line) =>
@@ -102,6 +110,12 @@ export function validate(ds: Dataset, previous: Dataset | null): string[] {
       if (!p.address?.trim()) errors.push(`top-up point #${i} (${p.name}) has no address`);
       if (!TOPUP_ZONES.includes(p.zone)) errors.push(`top-up point #${i} (${p.name}) has invalid zone "${p.zone}"`);
     });
+    // Si hay puntos, tiene que constar cuándo se revisó el cartel.
+    if (ds.topUpChecked === undefined) errors.push('topUpChecked is missing (required with topUpPoints)');
+  }
+  // La fecha de revisión, si existe, debe ser AAAA-MM-DD y un día real (no 2026-02-30).
+  if (ds.topUpChecked !== undefined && !isRealDate(ds.topUpChecked)) {
+    errors.push(`topUpChecked is not a valid YYYY-MM-DD date: "${ds.topUpChecked}"`);
   }
 
   // 8. Comparación con la versión anterior.

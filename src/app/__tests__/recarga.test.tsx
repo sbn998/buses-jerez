@@ -8,6 +8,15 @@ import { initI18n } from '@/i18n';
 
 import Recarga from '../(tabs)/recarga';
 
+// Copia incluida en la app, simulada: se cambia por prueba para comprobar la vuelta a ella.
+let mockBundled: Partial<Dataset> = {};
+jest.mock('@/data/bundled.json', () => ({
+  __esModule: true,
+  get default() {
+    return mockBundled;
+  },
+}));
+
 const base: Dataset = {
   schemaVersion: 1,
   generatedAt: '2026-10-28T00:00:00Z',
@@ -40,6 +49,7 @@ beforeAll(() => {
 beforeEach(() => {
   jest.spyOn(Linking, 'openURL').mockResolvedValue();
   (Linking.openURL as jest.Mock).mockClear();
+  mockBundled = {};
 });
 
 describe('pantalla Recarga', () => {
@@ -62,7 +72,21 @@ describe('pantalla Recarga', () => {
     expect(Linking.openURL).toHaveBeenCalledWith('https://www.comujesa.es/autobuses-urbanos/punto-venta-multiviaje');
   });
 
-  it('sin topUpPoints (copia antigua) remite a la web de Comujesa', async () => {
+  it('si la fecha no se puede leer, omite "revisado el" y nunca escribe Invalid Date', async () => {
+    await renderScreen({ ...withPoints, topUpChecked: 'ayer' });
+    expect(screen.getByText('Según el cartel oficial de Comujesa')).toBeTruthy();
+    expect(screen.queryByText(/Invalid Date/)).toBeNull();
+  });
+
+  it('datos descargados antiguos (sin puntos) usan los puntos y la fecha de la copia incluida', async () => {
+    mockBundled = withPoints;
+    await renderScreen(base);
+    expect(screen.getByText('Estanco Capuchinos')).toBeTruthy();
+    expect(screen.getByText('Según el cartel oficial de Comujesa · revisado el 29/10/2026')).toBeTruthy();
+    expect(screen.queryByText('Consulta los puntos de recarga en la web de Comujesa')).toBeNull();
+  });
+
+  it('sin topUpPoints en ninguna parte remite a la web de Comujesa', async () => {
     await renderScreen(base);
     expect(screen.getByText('Consulta los puntos de recarga en la web de Comujesa')).toBeTruthy();
     expect(screen.queryByText('Oficinas')).toBeNull();
