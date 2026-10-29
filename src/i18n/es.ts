@@ -58,6 +58,21 @@ const es = {
   common: {
     comingSoon: 'Próximamente',
   },
+  topup: {
+    title: 'Dónde recargar la tarjeta Multiviaje, Azul o Mensual',
+    zone: {
+      oficina: 'Oficinas',
+      centro: 'Centro',
+      norte: 'Norte',
+      este: 'Este',
+      oeste: 'Oeste',
+      sur: 'Sur',
+    },
+    source: 'Según el cartel oficial de Comujesa · revisado el {{date}}',
+    sourceNoDate: 'Según el cartel oficial de Comujesa',
+    missing: 'Consulta los puntos de recarga en la web de Comujesa',
+    openWeb: 'Ver en la web de Comujesa',
+  },
   error: {
     title: 'Algo ha fallado',
     retry: 'Reintentar',

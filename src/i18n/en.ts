@@ -63,6 +63,21 @@ const en: Textos = {
   common: {
     comingSoon: 'Coming soon',
   },
+  topup: {
+    title: 'Where to top up your Multiviaje, Azul or Mensual card',
+    zone: {
+      oficina: 'Offices',
+      centro: 'Centre',
+      norte: 'North',
+      este: 'East',
+      oeste: 'West',
+      sur: 'South',
+    },
+    source: 'From the official Comujesa poster · checked on {{date}}',
+    sourceNoDate: 'From the official Comujesa poster',
+    missing: 'Check the top-up points on the Comujesa website',
+    openWeb: 'View on the Comujesa website',
+  },
   error: {
     title: 'Something went wrong',
     retry: 'Try again',
