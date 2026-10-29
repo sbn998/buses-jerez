@@ -218,13 +218,53 @@ describe('planTrips', () => {
     expect(res).toHaveLength(1);
   });
 
+  it('keeps a transfer when only a later first bus connects within the wait limit', () => {
+    const data = mundo();
+    poner(data, '1', 'lab', [
+      ['10:05', '10:20', '10:35'],
+      ['10:45', '11:00', '11:15'],
+    ]);
+    poner(data, '3', 'lab', [['11:10', '11:25', '11:40']]);
+    // Con el bus de las 10:20 habría que esperar 50 min; con el de las 11:00, solo 10.
+    const res = planTrips(data, pt(0, 0), pt(2000, -6000), miercoles(10, 0));
+    expect(res).toHaveLength(1);
+    expect(res[0].legs[0].departure).toBe('10:45');
+    expect(res[0].legs[0].arrival).toBe('11:00');
+    expect(res[0].transferWaitMinutes).toBe(10);
+    expect(res[0].legs[1].departure).toBe('11:10');
+  });
+
+  // Mundo con un directo lento (línea 1) y dos transbordos rápidos hacia P3.
+  function mundoDirectoLento(): Dataset {
+    const data = mundo();
+    data.lines.push(linea('6', ['P2', 'P3']), linea('8', ['P1', 'P2']));
+    poner(data, '1', 'lab', [['10:05', '10:30', '11:30']]);
+    poner(data, '8', 'lab', [['10:05', '10:25']]);
+    poner(data, '6', 'lab', [['10:40', '10:50']]);
+    return data;
+  }
+
+  it('always keeps the best direct option even if it is not in the top maxResults', () => {
+    const data = mundoDirectoLento();
+    const res = planTrips(data, pt(0, 0), pt(4000, 0), miercoles(10, 0), { maxResults: 2 });
+    expect(res).toHaveLength(2);
+    expect(res.filter((r) => r.legs.length === 1).map((r) => r.id)).toEqual(['1:P1>P3']);
+    expect(res.filter((r) => r.legs.length === 2)).toHaveLength(1);
+    // Con espacio de sobra salen las cuatro combinaciones (1 directa y 3 con transbordo).
+    expect(planTrips(data, pt(0, 0), pt(4000, 0), miercoles(10, 0))).toHaveLength(4);
+  });
+
   it('respeta maxResults', () => {
     const data = mundo();
-    poner(data, '1', 'lab', [['10:05', '10:20', '10:35']]);
-    poner(data, '3', 'lab', [['10:30', '10:45', '11:00']]);
-    expect(planTrips(data, pt(0, 0), pt(2000, -6000), miercoles(10, 0), { maxResults: 0 })).toEqual(
-      [],
-    );
+    expect(planTrips(data, pt(0, 0), pt(4000, 0), miercoles(10, 0), { maxResults: 0 })).toEqual([]);
+
+    // Tres líneas directas P1 -> P3 con llegadas distintas: con maxResults 2 salen las 2 más rápidas.
+    for (const [id, llega] of [['11', '10:40'], ['12', '10:30'], ['13', '10:50']]) {
+      data.lines.push(linea(id, ['P1', 'P2', 'P3']));
+      poner(data, id, 'lab', [['10:05', '10:15', llega]]);
+    }
+    const res = planTrips(data, pt(0, 0), pt(4000, 0), miercoles(10, 0), { maxResults: 2 });
+    expect(res.map((r) => r.legs[0].line.id).sort()).toEqual(['11', '12']);
   });
 });
 
