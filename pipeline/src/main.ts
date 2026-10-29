@@ -25,6 +25,7 @@ import { buildHolidays, type LocalHolidays, type NagerHoliday } from './holidays
 import { createClient } from './http';
 import { makeManifest } from './manifest';
 import { OVERPASS_QUERY, OVERPASS_URL, parseOverpass } from './osm';
+import { osmCrossCheck } from './osmCrossCheck';
 import { fetchPrevious } from './previous';
 import { buildTrips } from './trips';
 import { cleanTimes } from './cleanTimes';
@@ -78,6 +79,8 @@ async function main() {
 
   const assembled = assemble(raw, readJson<Overrides>('overrides.json'), osmStops);
   warnings.push(...assembled.warnings);
+  // Cruce con OpenStreetMap: solo avisos, nunca bloquea la publicación.
+  warnings.push(...osmCrossCheck(assembled.stops, osmStops));
   const lines: Line[] = assembled.lines.map((line) => ({
     ...line,
     trips: Object.fromEntries(
