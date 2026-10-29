@@ -1,5 +1,5 @@
 // Prueba del detalle de una línea: sentidos, paradas en orden, abrir Horarios y línea inexistente.
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 
 import { DataProvider } from '@/data/DataProvider';
 import type { Dataset, Line } from '@/data/schema';
@@ -48,9 +48,33 @@ const data: Dataset = {
   ],
 };
 
-function renderScreen() {
+// Línea con 80 paradas y un recorrido, para comprobar que el mapa usa una sola fuente de paradas.
+const manyCodes = Array.from({ length: 80 }, (_, i) => `P${i}`);
+const manyData: Dataset = {
+  ...data,
+  stops: {
+    ...data.stops,
+    ...Object.fromEntries(
+      manyCodes.map((code, i) => [
+        code,
+        { code, name: `Parada ${i}`, description: '', lat: 36.68 + i * 0.001, lon: -6.13, coordSource: 'kml' as const },
+      ]),
+    ),
+  },
+  lines: [
+    {
+      ...makeLine('80', [{ headsign: 'Largo', stopCodes: manyCodes }]),
+      shapes: [[[-6.13, 36.68], [-6.12, 36.76]]],
+    },
+  ],
+};
+
+// Ayudas que solo existen en el mock de MapLibre (carpeta __mocks__ de la raíz).
+const { failMapLoading, getRecorded, resetMock } = jest.requireMock('@maplibre/maplibre-react-native');
+
+function renderScreen(dataset: Dataset = data) {
   return render(
-    <DataProvider value={{ data, source: 'bundled', checkedAt: null }}>
+    <DataProvider value={{ data: dataset, source: 'bundled', checkedAt: null }}>
       <Linea />
     </DataProvider>,
   );
@@ -61,6 +85,7 @@ beforeAll(() => {
 });
 beforeEach(() => {
   jest.clearAllMocks();
+  resetMock();
   mockParams = { id: '1' };
 });
 
@@ -70,7 +95,6 @@ describe('detalle de línea', () => {
     expect(screen.getByText('Hacia Norte')).toBeTruthy();
     expect(screen.getByText('Hacia Sur')).toBeTruthy();
     expect(screen.queryByText('Recorrido')).toBeNull();
-    expect(screen.getByText('El mapa llegará pronto')).toBeTruthy();
     const labels = screen.getAllByRole('button').map((b) => b.props.accessibilityLabel);
     expect(labels).toEqual([
       '1. Parada Uno', '2. Parada Dos, ubicación aproximada', '3. Parada Tres',
@@ -98,5 +122,30 @@ describe('detalle de línea', () => {
     expect(screen.getByText('Línea no encontrada')).toBeTruthy();
     await fireEvent.press(screen.getByText('Volver'));
     expect(mockBack).toHaveBeenCalled();
+  });
+
+  it('renders one ShapeSource for stops y una para el recorrido', async () => {
+    mockParams = { id: '80' };
+    await renderScreen(manyData);
+    expect(screen.getAllByTestId('shape-source-stops')).toHaveLength(1);
+    expect(screen.getAllByTestId('shape-source-shapes')).toHaveLength(1);
+    // La caja del mapa abarca las paradas y el recorrido.
+    expect(getRecorded().camera?.initialViewState).toMatchObject({ bounds: [-6.13, 36.68, -6.12, 36.76] });
+  });
+
+  it('al pulsar una parada del mapa abre Horarios con esa línea y parada', async () => {
+    mockParams = { id: '80' };
+    await renderScreen(manyData);
+    await fireEvent.press(screen.getByTestId('press-stops-P7'));
+    expect(openSchedule).toHaveBeenCalledWith(mockRouter, '80', 'P7');
+  });
+
+  it('si el mapa falla, se ve el recuadro y la lista sigue', async () => {
+    await renderScreen();
+    await act(async () => failMapLoading());
+    expect(screen.getByText('Mapa no disponible sin conexión')).toBeTruthy();
+    expect(screen.queryByTestId('map-view')).toBeNull();
+    expect(screen.getByText('Hacia Norte')).toBeTruthy();
+    expect(screen.getAllByRole('button')).toHaveLength(6);
   });
 });

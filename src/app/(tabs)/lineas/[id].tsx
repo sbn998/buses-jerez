@@ -1,4 +1,4 @@
-// Detalle de una línea: hueco para el mapa y, por cada sentido, sus paradas numeradas en orden.
+// Detalle de una línea: mapa con su recorrido y paradas y, por cada sentido, sus paradas numeradas en orden.
 // Al tocar una parada se abre Horarios con esa línea y parada.
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo } from 'react';
@@ -6,13 +6,17 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, SectionList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { JerezMap } from '@/components/map/JerezMap';
 import { StopRow } from '@/components/lines/StopRow';
 import { ThemedText } from '@/components/themed-text';
 import { BottomTabInset, Spacing } from '@/constants/theme';
 import { useData } from '@/data/DataProvider';
 import type { Stop } from '@/data/schema';
 import { useTheme } from '@/hooks/use-theme';
+import { boundsOf } from '@/lib/mapLayers';
 import { openSchedule } from '@/lib/navigation';
+
+const MAP_HEIGHT = 220;
 
 export default function LineaDetalle() {
   const { t } = useTranslation();
@@ -30,6 +34,17 @@ export default function LineaDetalle() {
       data: direction.stopCodes.flatMap((code) => (data.stops[code] ? [data.stops[code]] : [])),
     }));
   }, [line, data, t]);
+
+  // Paradas de la línea (sin repetir) y caja que abarca paradas y recorrido, para encuadrar el mapa.
+  const mapStops = useMemo(
+    () => (line ? line.stopCodes.flatMap((code) => (data.stops[code] ? [data.stops[code]] : [])) : []),
+    [line, data],
+  );
+  const mapShapes = useMemo(() => (line ? { shapes: line.shapes, colour: line.colour } : undefined), [line]);
+  const mapBounds = useMemo(
+    () => boundsOf([...mapStops.map((s): [number, number] => [s.lon, s.lat]), ...(line?.shapes.flat() ?? [])]) ?? undefined,
+    [mapStops, line],
+  );
 
   if (!line) {
     return (
@@ -56,8 +71,14 @@ export default function LineaDetalle() {
         stickySectionHeadersEnabled={false}
         contentContainerStyle={styles.content}
         ListHeaderComponent={
-          <View style={[styles.map, { backgroundColor: theme.backgroundElement }]}>
-            <ThemedText themeColor="textSecondary">{t('nearby.mapSoon')}</ThemedText>
+          <View style={styles.map}>
+            <JerezMap
+              height={MAP_HEIGHT}
+              bounds={mapBounds}
+              stops={mapStops}
+              shapes={mapShapes}
+              onStopPress={(code) => openSchedule(router, line.id, code)}
+            />
           </View>
         }
         renderSectionHeader={({ section }) => (
@@ -78,7 +99,7 @@ const styles = StyleSheet.create({
   content: { padding: Spacing.three, paddingBottom: BottomTabInset + Spacing.four },
   notFound: { alignItems: 'center', justifyContent: 'center', gap: Spacing.three, padding: Spacing.three },
   backButton: { paddingVertical: Spacing.two, paddingHorizontal: Spacing.four, borderRadius: Spacing.two },
-  map: { height: 160, borderRadius: Spacing.three, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.two },
+  map: { borderRadius: Spacing.three, overflow: 'hidden', marginBottom: Spacing.two },
   sectionTitle: { marginTop: Spacing.three, marginBottom: Spacing.two },
 });
 
