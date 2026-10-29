@@ -48,10 +48,11 @@ export function Camera(props: CameraProps) {
   return <View testID="map-camera" />;
 }
 
-// Para probar la pulsación: un Pressable que entrega la primera feature de los datos.
+// Para probar la pulsación: un Pressable (`press-<id>`) que entrega la primera feature de los datos,
+// y uno por feature con código (`press-<id>-<código>`) para tocar una parada concreta.
 export function GeoJSONSource({ id, children, onPress, data }: GeoJSONSourceProps) {
-  const first =
-    typeof data === 'object' && data.type === 'FeatureCollection' ? data.features[0] : undefined;
+  const features = typeof data === 'object' && data.type === 'FeatureCollection' ? data.features : [];
+  const first = features[0];
   return (
     <View testID={`shape-source-${id}`}>
       {onPress && first ? (
@@ -60,6 +61,15 @@ export function GeoJSONSource({ id, children, onPress, data }: GeoJSONSourceProp
           onPress={() => onPress({ nativeEvent: { features: [first] } } as never)}
         />
       ) : null}
+      {onPress
+        ? features.map((f) => (
+            <Pressable
+              key={String(f.properties?.code)}
+              testID={`press-${id}-${f.properties?.code}`}
+              onPress={() => onPress({ nativeEvent: { features: [f] } } as never)}
+            />
+          ))
+        : null}
       {children}
     </View>
   );

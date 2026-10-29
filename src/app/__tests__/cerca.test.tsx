@@ -1,5 +1,5 @@
 // Prueba de la pantalla Cerca de mí con datos pequeños, posición y reloj simulados.
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { Linking } from 'react-native';
 
 import { DataProvider } from '@/data/DataProvider';
@@ -63,10 +63,14 @@ function renderScreen() {
   );
 }
 
+// Ayudas que solo existen en el mock de MapLibre (carpeta __mocks__ de la raíz).
+const { failMapLoading, resetMock } = jest.requireMock('@maplibre/maplibre-react-native');
+
 beforeAll(() => {
   initI18n('es');
 });
 beforeEach(() => {
+  resetMock();
   mockPush.mockClear();
   useFavorites.setState({ items: [] });
   mockLocation = { status: 'ready', coords: { lat: 0, lon: 0 }, retry: jest.fn() };
@@ -79,7 +83,6 @@ describe('pantalla Cerca de mí', () => {
     expect(screen.getByText('111 m · 2 min')).toBeTruthy();
     expect(screen.getByText('hacia Destino 1')).toBeTruthy();
     expect(screen.getByText('10:30 · en 30 min')).toBeTruthy();
-    expect(screen.getByText('El mapa llegará pronto')).toBeTruthy();
 
     await fireEvent.press(screen.getByLabelText('Abrir Línea 1 en Plaza Cercana'));
     expect(mockPush).toHaveBeenCalledTimes(1);
@@ -202,5 +205,51 @@ describe('pantalla Cerca de mí', () => {
     expect(screen.getByText(/No se puede obtener tu ubicación/)).toBeTruthy();
     await fireEvent.press(screen.getByText('Permitir ubicación'));
     expect(mockLocation.retry).toHaveBeenCalledTimes(1);
+  });
+
+  describe('mapa', () => {
+    it('con posición, enseña el mapa con las paradas', async () => {
+      await renderScreen();
+      expect(screen.getByTestId('map-view')).toBeTruthy();
+      expect(screen.getByTestId('shape-source-stops')).toBeTruthy();
+    });
+
+    it('sin posición no enseña el mapa y mantiene el estado de ubicación', async () => {
+      mockLocation = { status: 'denied', coords: null, retry: jest.fn() };
+      await renderScreen();
+      expect(screen.queryByTestId('map-view')).toBeNull();
+      expect(screen.getByText('Permitir ubicación')).toBeTruthy();
+    });
+
+    it('al tocar una parada en el mapa se abre su tarjeta', async () => {
+      await renderScreen();
+      expect(screen.queryByText('hacia Destino 3')).toBeNull();
+      await fireEvent.press(screen.getByTestId('press-stops-B'));
+      expect(screen.getByText('hacia Destino 3')).toBeTruthy();
+    });
+
+    it('map error: enseña el recuadro de sin conexión y la lista sigue visible', async () => {
+      await renderScreen();
+      await act(async () => failMapLoading());
+      expect(screen.getByText('Mapa no disponible sin conexión')).toBeTruthy();
+      expect(screen.queryByTestId('map-view')).toBeNull();
+      expect(screen.getByText('Plaza Cercana')).toBeTruthy();
+    });
+
+    it('la leyenda de ubicación aproximada sale solo si alguna parada lo es', async () => {
+      const view = await renderScreen();
+      expect(screen.getByText('○ ubicación aproximada')).toBeTruthy();
+      await view.unmount();
+
+      // Con la parada B lejos (fuera de 500 m) y la A cerca, solo se enseña A, que es exacta.
+      const exact = { ...data.stops.B, approximate: false };
+      const exactData: Dataset = { ...data, stops: { ...data.stops, B: exact } };
+      await render(
+        <DataProvider value={{ data: exactData, source: 'bundled', checkedAt: null }}>
+          <Cerca />
+        </DataProvider>,
+      );
+      expect(screen.queryByText('○ ubicación aproximada')).toBeNull();
+    });
   });
 });

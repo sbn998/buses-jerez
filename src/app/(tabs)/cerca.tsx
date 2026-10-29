@@ -1,11 +1,12 @@
 // Pestaña "Cerca de mí": favoritos con su próximo bus, y las paradas a menos de 500 m de donde
-// estás (la más cercana abierta). El mapa llegará más adelante: de momento hay un recuadro.
+// estás (la más cercana abierta), con un mapa donde tocar una parada abre su tarjeta.
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { type ComponentRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { JerezMap } from '@/components/map/JerezMap';
 import { LocationState } from '@/components/nearby/LocationState';
 import { NearbyStopCard } from '@/components/nearby/NearbyStopCard';
 import { FavoritesList } from '@/components/schedule/FavoritesList';
@@ -18,6 +19,8 @@ import { useTheme } from '@/hooks/use-theme';
 import { nearbyStops } from '@/lib/nearby';
 import { openSchedule } from '@/lib/navigation';
 import { useFavorites } from '@/stores/favorites';
+
+const MAP_HEIGHT = 240;
 
 export default function Cerca() {
   const { t } = useTranslation();
@@ -33,16 +36,50 @@ export default function Cerca() {
   const [toggled, setToggled] = useState<Record<string, boolean>>({});
 
   const nearby = useMemo(() => (coords ? nearbyStops(data, coords) : null), [data, coords]);
+  const mapStops = useMemo(() => nearby?.items.map((i) => i.stop), [nearby]);
+  const hasApproximate = mapStops?.some((s) => s.approximate) ?? false;
+
+  // Para llevar la lista hasta una parada tocada en el mapa: guardamos dónde está cada tarjeta.
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
+  const cardY = useRef<Record<string, number>>({});
+  const [focus, setFocus] = useState<{ code: string; n: number } | null>(null);
+
+  // Tocar una parada en el mapa: abre su tarjeta y pide desplazarse hasta ella.
+  const openFromMap = useCallback((code: string) => {
+    setToggled((prev) => ({ ...prev, [code]: true }));
+    setFocus((prev) => ({ code, n: (prev?.n ?? 0) + 1 }));
+  }, []);
+
+  // Cuando hay una parada pendiente, desplazamos la lista hasta su tarjeta.
+  useEffect(() => {
+    if (!focus) return;
+    const y = cardY.current[focus.code];
+    if (y != null) scrollRef.current?.scrollTo({ y, animated: true });
+  }, [focus]);
 
   return (
     <SafeAreaView edges={['left', 'right']} style={[styles.screen, { backgroundColor: theme.background }]}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.content}>
         <ThemedText type="subtitle">{t('schedule.favorites')}</ThemedText>
         <FavoritesList items={favorites} now={now} onSelect={(f) => openSchedule(router, f.lineId, f.stopCode)} />
 
-        <View style={[styles.map, { backgroundColor: theme.backgroundElement }]}>
-          <ThemedText themeColor="textSecondary">{t('nearby.mapSoon')}</ThemedText>
-        </View>
+        {coords && mapStops ? (
+          <View style={styles.mapBox}>
+            <JerezMap
+              height={MAP_HEIGHT}
+              center={[coords.lon, coords.lat]}
+              zoom={16}
+              stops={mapStops}
+              user={coords}
+              onStopPress={openFromMap}
+            />
+            {hasApproximate ? (
+              <ThemedText type="small" themeColor="textSecondary">
+                {t('nearby.approxLegend')}
+              </ThemedText>
+            ) : null}
+          </View>
+        ) : null}
 
         {status === 'ready' ? (
           nearby ? (
@@ -59,17 +96,23 @@ export default function Cerca() {
                 <ThemedText themeColor="textSecondary">{t('nearby.farWarning')}</ThemedText>
               )}
               {nearby.items.map((item, index) => (
-                <NearbyStopCard
+                <View
                   key={item.stop.code}
-                  item={item}
-                  showMinutes={!approximate}
-                  now={now}
-                  open={toggled[item.stop.code] ?? index === 0}
-                  onToggle={() =>
-                    setToggled((prev) => ({ ...prev, [item.stop.code]: !(prev[item.stop.code] ?? index === 0) }))
-                  }
-                  onSelectLine={(lineId, stopCode) => openSchedule(router, lineId, stopCode)}
-                />
+                  onLayout={(e) => {
+                    cardY.current[item.stop.code] = e.nativeEvent.layout.y;
+                  }}
+                >
+                  <NearbyStopCard
+                    item={item}
+                    showMinutes={!approximate}
+                    now={now}
+                    open={toggled[item.stop.code] ?? index === 0}
+                    onToggle={() =>
+                      setToggled((prev) => ({ ...prev, [item.stop.code]: !(prev[item.stop.code] ?? index === 0) }))
+                    }
+                    onSelectLine={(lineId, stopCode) => openSchedule(router, lineId, stopCode)}
+                  />
+                </View>
               ))}
             </>
           ) : null
@@ -84,7 +127,7 @@ export default function Cerca() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: Spacing.three, paddingBottom: BottomTabInset + Spacing.four, gap: Spacing.three },
-  map: { height: 96, borderRadius: Spacing.three, alignItems: 'center', justifyContent: 'center' },
+  mapBox: { gap: Spacing.one, borderRadius: Spacing.three, overflow: 'hidden' },
 });
 
 // Si esta pantalla falla, se muestra su propio aviso y la barra de pestañas sigue visible.

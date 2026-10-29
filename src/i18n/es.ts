@@ -43,6 +43,7 @@ const es = {
     farWarning: 'No hay paradas a menos de 500 m. Estas son las más cercanas',
     mapSoon: 'El mapa llegará pronto',
     distance: '{{meters}} m · {{minutes}} min',
+    approxLegend: '○ ubicación aproximada',
     approximate: 'ubicación aproximada',
     towards: 'hacia {{headsign}}',
     noServiceToday: 'Sin servicio hoy',

@@ -48,6 +48,7 @@ const en: Textos = {
     farWarning: 'No stops within 500 m. These are the closest ones',
     mapSoon: 'The map is coming soon',
     distance: '{{meters}} m · {{minutes}} min',
+    approxLegend: '○ approximate location',
     approximate: 'approximate location',
     towards: 'towards {{headsign}}',
     noServiceToday: 'No service today',
