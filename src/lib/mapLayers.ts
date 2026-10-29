@@ -37,6 +37,30 @@ export function shapesToGeoJSON(
   return { type: 'FeatureCollection', features };
 }
 
+// Convierte rutas de un trayecto (listas de [lon, lat] con su color) en líneas GeoJSON.
+export function routesToGeoJSON(
+  routes: { coords: [number, number][]; colour: string }[],
+): FeatureCollection<LineString> {
+  const features: Feature<LineString>[] = routes.map((r) => ({
+    type: 'Feature',
+    geometry: { type: 'LineString', coordinates: r.coords },
+    properties: { colour: r.colour },
+  }));
+  return { type: 'FeatureCollection', features };
+}
+
+// Convierte el origen y el destino en puntos GeoJSON ([lon, lat]) con la propiedad `kind`.
+export function placesToGeoJSON(
+  places: { lat: number; lon: number; kind: 'origin' | 'destination' }[],
+): FeatureCollection<Point> {
+  const features: Feature<Point>[] = places.map((p) => ({
+    type: 'Feature',
+    geometry: { type: 'Point', coordinates: [p.lon, p.lat] },
+    properties: { kind: p.kind },
+  }));
+  return { type: 'FeatureCollection', features };
+}
+
 // Caja que contiene todos los puntos [lon, lat]: [lonMin, latMin, lonMax, latMax]. Sin puntos, null.
 export function boundsOf(points: [number, number][]): [number, number, number, number] | null {
   if (points.length === 0) return null;

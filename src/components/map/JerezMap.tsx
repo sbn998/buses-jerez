@@ -7,7 +7,14 @@ import { useTranslation } from 'react-i18next';
 import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { Stop } from '@/data/schema';
-import { JEREZ_BOUNDS, MAP_STYLE_URL, shapesToGeoJSON, stopsToGeoJSON } from '@/lib/mapLayers';
+import {
+  JEREZ_BOUNDS,
+  MAP_STYLE_URL,
+  placesToGeoJSON,
+  routesToGeoJSON,
+  shapesToGeoJSON,
+  stopsToGeoJSON,
+} from '@/lib/mapLayers';
 import { readLocalStyle, useOfflineMap } from '@/lib/offlineMap';
 
 import { MapPlaceholder } from './MapPlaceholder';
@@ -75,6 +82,10 @@ export type JerezMapProps = {
   stops?: Stop[];
   shapes?: { shapes: [number, number][][]; colour: string };
   user?: { lat: number; lon: number } | null;
+  /** Rutas de un trayecto (Cómo llego): se dibujan debajo de las paradas. */
+  routes?: { coords: [number, number][]; colour: string }[];
+  /** Origen y destino elegidos: se dibujan encima de las paradas. */
+  places?: { lat: number; lon: number; kind: 'origin' | 'destination' }[];
   onStopPress?: (code: string) => void;
   /** Cada vez que cambia (no en el primer pintado), la cámara vuelve a `bounds` o a `center`. */
   recenterKey?: number;
@@ -117,6 +128,8 @@ function MapContent({
   stops = EMPTY_STOPS,
   shapes,
   user,
+  routes,
+  places,
   onStopPress,
   recenterKey,
 }: Omit<JerezMapProps, 'onStatusChange'> & { maplibre: MapLibre; onPhaseChange: (phase: DrawnStatus) => void }) {
@@ -200,6 +213,8 @@ function MapContent({
     () => (shapes ? shapesToGeoJSON(shapes.shapes, shapes.colour) : null),
     [shapes],
   );
+  const routesData = useMemo(() => (routes ? routesToGeoJSON(routes) : null), [routes]);
+  const placesData = useMemo(() => (places ? placesToGeoJSON(places) : null), [places]);
   // La posición del usuario es un punto GeoJSON más.
   const userData = useMemo<GeoJSON.Point | null>(
     () => (user ? { type: 'Point', coordinates: [user.lon, user.lat] } : null),
@@ -235,6 +250,16 @@ function MapContent({
             />
           </GeoJSONSource>
         ) : null}
+        {routesData ? (
+          <GeoJSONSource id="routes" data={routesData}>
+            <Layer
+              type="line"
+              id="routes-line"
+              paint={{ 'line-color': ['get', 'colour'], 'line-width': 5 }}
+              layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+            />
+          </GeoJSONSource>
+        ) : null}
         <GeoJSONSource
           id="stops"
           data={stopsData}
@@ -257,6 +282,21 @@ function MapContent({
             }}
           />
         </GeoJSONSource>
+        {placesData ? (
+          <GeoJSONSource id="places" data={placesData}>
+            <Layer
+              type="circle"
+              id="places-circle"
+              paint={{
+                'circle-radius': 8,
+                // Destino en rojo, origen en azul.
+                'circle-color': ['case', ['==', ['get', 'kind'], 'destination'], '#dc2626', '#2563eb'],
+                'circle-stroke-color': '#ffffff',
+                'circle-stroke-width': 3,
+              }}
+            />
+          </GeoJSONSource>
+        ) : null}
         {userData ? (
           <GeoJSONSource id="user" data={userData}>
             <Layer

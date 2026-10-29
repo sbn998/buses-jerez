@@ -206,6 +206,50 @@ describe('JerezMap', () => {
     expect(layers['shapes-line'].paint['line-width']).toBe(4);
   });
 
+  it('con routes y places registra las fuentes routes y places con sus datos', async () => {
+    await render(
+      <JerezMap
+        height={200}
+        stops={[stop]}
+        routes={[{ coords: [[-6.1, 36.6], [-6.2, 36.7]], colour: '#ff0000' }]}
+        places={[{ lat: 36.68, lon: -6.13, kind: 'destination' }]}
+      />,
+    );
+    const { sources, layers } = getRecorded();
+    expect(sources.routes.data.features[0].geometry.coordinates).toEqual([[-6.1, 36.6], [-6.2, 36.7]]);
+    expect(sources.routes.data.features[0].properties.colour).toBe('#ff0000');
+    expect(sources.places.data.features[0].geometry.coordinates).toEqual([-6.13, 36.68]);
+    expect(sources.places.data.features[0].properties.kind).toBe('destination');
+    expect(layers['routes-line'].type).toBe('line');
+    expect(layers['routes-line'].paint['line-width']).toBe(5);
+    expect(layers['routes-line'].paint['line-color']).toEqual(['get', 'colour']);
+    expect(layers['places-circle'].type).toBe('circle');
+    expect(layers['places-circle'].paint['circle-radius']).toBe(8);
+    expect(layers['places-circle'].paint['circle-stroke-width']).toBe(3);
+    expect(layers['places-circle'].paint['circle-stroke-color']).toBe('#ffffff');
+  });
+
+  it('las rutas se dibujan antes que las paradas y los lugares después', async () => {
+    await render(
+      <JerezMap
+        height={200}
+        stops={[stop]}
+        routes={[{ coords: [[-6.1, 36.6], [-6.2, 36.7]], colour: '#ff0000' }]}
+        places={[{ lat: 36.68, lon: -6.13, kind: 'origin' }]}
+      />,
+    );
+    const order = Object.keys(getRecorded().sources);
+    expect(order.indexOf('routes')).toBeLessThan(order.indexOf('stops'));
+    expect(order.indexOf('places')).toBeGreaterThan(order.indexOf('stops'));
+  });
+
+  it('sin routes ni places no registra esas fuentes', async () => {
+    await render(<JerezMap height={200} stops={[stop]} />);
+    const { sources } = getRecorded();
+    expect(sources.routes).toBeUndefined();
+    expect(sources.places).toBeUndefined();
+  });
+
   it('dibuja al usuario como círculo azul solo si hay posición', async () => {
     await render(<JerezMap height={200} user={{ lat: 36.68, lon: -6.13 }} />);
     expect(getRecorded().layers['user-circle'].paint['circle-color']).toBe('#2563eb');
