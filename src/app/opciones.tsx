@@ -35,3 +35,6 @@ const styles = StyleSheet.create({
   content: { padding: 16, gap: 8 },
   section: { marginTop: 24 },
 });
+
+// Si esta pantalla falla, se muestra su propio aviso y la barra de pestañas sigue visible.
+export { RouteError as ErrorBoundary } from '@/components/RouteError';

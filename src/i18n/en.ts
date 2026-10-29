@@ -85,6 +85,7 @@ const en: Textos = {
   },
   error: {
     title: 'Something went wrong',
+    routeTitle: 'Something went wrong on this screen',
     retry: 'Try again',
   },
   options: {

@@ -80,6 +80,7 @@ const es = {
   },
   error: {
     title: 'Algo ha fallado',
+    routeTitle: 'Algo ha fallado en esta pantalla',
     retry: 'Reintentar',
   },
   options: {

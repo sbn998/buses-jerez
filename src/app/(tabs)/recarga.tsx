@@ -59,3 +59,6 @@ const styles = StyleSheet.create({
   content: { padding: Spacing.three, paddingBottom: BottomTabInset + Spacing.four, gap: Spacing.three },
   map: { height: 96, borderRadius: Spacing.three, alignItems: 'center', justifyContent: 'center' },
 });
+
+// Si esta pantalla falla, se muestra su propio aviso y la barra de pestañas sigue visible.
+export { RouteError as ErrorBoundary } from '@/components/RouteError';

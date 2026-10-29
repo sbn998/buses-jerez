@@ -174,3 +174,6 @@ const styles = StyleSheet.create({
   starText: { fontSize: 32, lineHeight: 38 },
   change: { paddingHorizontal: Spacing.three, paddingVertical: Spacing.two, borderRadius: Spacing.three, minHeight: 36, justifyContent: 'center' },
 });
+
+// Si esta pantalla falla, se muestra su propio aviso y la barra de pestañas sigue visible.
+export { RouteError as ErrorBoundary } from '@/components/RouteError';

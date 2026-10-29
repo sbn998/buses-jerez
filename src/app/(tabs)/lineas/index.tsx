@@ -33,3 +33,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: Spacing.three, paddingBottom: BottomTabInset + Spacing.four, gap: Spacing.two },
 });
+
+// Si esta pantalla falla, se muestra su propio aviso y la barra de pestañas sigue visible.
+export { RouteError as ErrorBoundary } from '@/components/RouteError';
