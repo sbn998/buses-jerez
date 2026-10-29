@@ -59,7 +59,7 @@ Las piezas se van añadiendo conforme se construyen. Cada archivo empieza con un
 
 El mapa se dibuja con datos de OpenStreetMap (© OpenStreetMap contributors, licencia ODbL) y no cuesta dinero: se genera una vez al mes en GitHub y se publica en la misma web que los horarios.
 
-- **Mensual** (`.github/workflows/map.yml`, el día 1 de cada mes o a mano desde Actions → "Mapa mensual" → "Run workflow"): descarga Andalucía de Geofabrik, recorta Jerez, genera `jerez.pmtiles` y `fonts.zip` y los sube al Release `mapa` del repositorio. Si `jerez.pmtiles` pesa más de 80 MB, el proceso falla.
+- **Mensual** (`.github/workflows/map.yml`, el día 1 de cada mes o a mano desde Actions → "Mapa mensual" → "Run workflow"): descarga Andalucía de Geofabrik, recorta Jerez, genera `jerez.pmtiles` y `fonts.zip` (solo los rangos latinos de las tipografías) y los sube al Release `mapa` del repositorio. Si `jerez.pmtiles` pesa más de 80 MB, el proceso falla.
 - **Diario** (`.github/workflows/data.yml`): después de `build-data` se baja el Release `mapa`, descomprime las tipografías en `out/map/fonts/` y ejecuta `npm run write-style`. Si el Release no existe todavía, avisa (`::warning::`) y publica los horarios sin mapa.
 - **Primera vez**: lanza "Mapa mensual" a mano, y después "Datos diarios".
 - **Direcciones públicas**: `https://sbn998.github.io/buses-jerez/map/style.json`, `…/map/jerez.pmtiles` y `…/map/fonts/{fontstack}/{range}.pbf`.
@@ -87,10 +87,14 @@ jq 'del(.layers.ocean, .layers.urban_areas, .layers.ice_shelf, .layers.glacier) 
   --config config.json --process tilemaker-src/resources/process-openmaptiles.lua
 ```
 
-Con `maxzoom 14` las teselas se amplían en la app hasta el zoom 16 o más sin perder calidad. Tipografías (solo "Noto Sans Regular" y "Noto Sans Bold"):
+Con `maxzoom 14` las teselas se amplían en la app hasta el zoom 16 o más sin perder calidad. Tipografías (solo "Noto Sans Regular" y "Noto Sans Bold", y de cada una solo los rangos `0-255`, `256-511` y `8192-8447`: latín, acentos y puntuación). Si `fonts.zip` pesa más de 2 MB, el proceso falla:
 
 ```bash
 curl -fsSL -o noto-sans.zip https://github.com/openmaptiles/fonts/releases/download/v2.0/noto-sans.zip
-unzip -q noto-sans.zip "Noto Sans Regular/*" "Noto Sans Bold/*" -d fonts-src
+for fontstack in "Noto Sans Regular" "Noto Sans Bold"; do
+  for range in 0-255 256-511 8192-8447; do
+    unzip -q noto-sans.zip "$fontstack/$range.pbf" -d fonts-src
+  done
+done
 (cd fonts-src && zip -qr ../fonts.zip .)
 ```

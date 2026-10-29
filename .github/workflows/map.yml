@@ -5,7 +5,8 @@
 #   2. Recorta solo la zona de Jerez (osmium).
 #   3. Lo convierte en teselas vectoriales (tilemaker) dentro de un único archivo
 #      jerez.pmtiles, y falla si pesa más de 80 MB.
-#   4. Empaqueta las tipografías (Noto Sans Regular y Bold) en fonts.zip.
+#   4. Empaqueta las tipografías (Noto Sans Regular y Bold, solo los rangos
+#      latinos) en fonts.zip, y falla si pesa más de 2 MB.
 #   5. Sube jerez.pmtiles y fonts.zip al Release "mapa" de este repositorio.
 # El proceso diario (data.yml) se baja ese Release y lo publica junto a los horarios
 # en https://sbn998.github.io/buses-jerez/map/.
@@ -79,17 +80,34 @@ jobs:
 
       - name: Preparar las tipografías
         # El zip original trae una carpeta por tipografía ("Noto Sans Regular/0-255.pbf"...).
-        # Nos quedamos solo con dos; al descomprimir fonts.zip dentro de map/fonts/ queda
-        # fonts/<tipografía>/<rango>.pbf, que es lo que pide el estilo.
+        # Nos quedamos solo con dos tipografías y, de cada una, con tres rangos: 0-255 (latín
+        # básico), 256-511 (latín extendido, acentos) y 8192-8447 (puntuación). Así fonts.zip
+        # es pequeño y la app puede bajarlo entero para usar el mapa sin conexión.
+        # Al descomprimir fonts.zip dentro de map/fonts/ queda fonts/<tipografía>/<rango>.pbf,
+        # que es lo que pide el estilo.
         run: |
           curl -fsSL -o noto-sans.zip https://github.com/openmaptiles/fonts/releases/download/v2.0/noto-sans.zip
-          unzip -q noto-sans.zip "Noto Sans Regular/*" "Noto Sans Bold/*" -d fonts-src
-          # Comprobamos que las dos tipografías están de verdad antes de empaquetarlas.
-          if ! { test -f "fonts-src/Noto Sans Regular/0-255.pbf" && test -f "fonts-src/Noto Sans Bold/0-255.pbf"; }; then
-            echo "::error::Faltan las tipografías Noto Sans Regular o Bold (0-255.pbf) en el zip descargado"
+          for fontstack in "Noto Sans Regular" "Noto Sans Bold"; do
+            for range in 0-255 256-511 8192-8447; do
+              unzip -q noto-sans.zip "$fontstack/$range.pbf" -d fonts-src
+            done
+          done
+          # Comprobamos que los seis archivos están de verdad antes de empaquetarlos.
+          for fontstack in "Noto Sans Regular" "Noto Sans Bold"; do
+            for range in 0-255 256-511 8192-8447; do
+              if ! test -f "fonts-src/$fontstack/$range.pbf"; then
+                echo "::error::Falta $fontstack/$range.pbf en el zip descargado"
+                exit 1
+              fi
+            done
+          done
+          (cd fonts-src && zip -qr ../fonts.zip .)
+          size=$(stat -c %s fonts.zip)
+          echo "fonts.zip pesa ${size} bytes"
+          if [ "$size" -gt 2097152 ]; then
+            echo "::error::fonts.zip pesa más de 2 MB"
             exit 1
           fi
-          (cd fonts-src && zip -qr ../fonts.zip .)
 
       - name: Subir al Release "mapa"
         env:
