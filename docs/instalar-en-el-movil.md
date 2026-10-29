@@ -1,6 +1,6 @@
 # Instalar Buses Jerez en tu móvil Android
 
-Guía para principiantes. Haz un paso cada vez, en orden. Tiempo total: unos 45 minutos, casi todo esperando la compilación.
+Guía para principiantes. Haz un paso cada vez, en orden. Tiempo total: unos 45 minutos sin la Parte 6; la Parte 6 añade unos 70 minutos, casi todo esperando a que compile.
 Necesitas: el ordenador con este proyecto, un móvil Android y el móvil y el ordenador en la misma red wifi.
 
 ## Parte 1: crear el instalador (se hace una sola vez)
@@ -52,26 +52,28 @@ Hazla solo una vez, cuando ya tengas la versión nueva del proyecto con el mapa.
 22. **Vuelve a compilar la app de desarrollo**, porque MapLibre es un módulo nativo y la app anterior no lo incluye. Usa `npx eas-cli build --profile development --platform android`. Espera entre 15 y 25 min; en la cuenta gratuita puede haber cola. (20 min de espera)
 23. **Copia el enlace al nuevo APK** que aparece al terminar, o búscalo en https://expo.dev, apartado Builds. (1 min)
 24. **Instala el nuevo APK** en el móvil: abre el enlace, descárgalo y pulsa "Instalar" (si pregunta, pulsa "Actualizar"). (5 min)
-25. **En el ordenador, arranca el servidor** con `npx expo start` y abre la app "Buses Jerez" en el móvil, como en el paso 11. (2 min)
+25. **En el ordenador, arranca el servidor** con `npx expo start` y deja la terminal abierta. (1 min)
+26. **Abre la app "Buses Jerez" en el móvil**, como en el paso 11. (1 min)
 
 **Comprobación 1: con conexión**
 
-26. **Cerca de mí:** abre la pestaña Cerca de mí. Se ve el mapa y el texto "© OpenStreetMap". (2 min)
-27. **Detalle de una línea:** elige una línea (por ejemplo la 1) y abre su detalle. Se ve el mapa con "© OpenStreetMap". (2 min)
-
-Si el mapa no aparece con conexión, abre el enlace del paso 21 en el navegador. Si abre, avisa del fallo tal cual y no busques atajos.
+27. **Cerca de mí:** abre la pestaña Cerca de mí. Se ve el mapa y el texto "© OpenStreetMap". (2 min)
+28. **Elige una línea** (por ejemplo la 1) y abre su detalle. (1 min)
+29. **Mira el mapa del detalle:** se ve el mapa y el texto "© OpenStreetMap". (1 min)
 
 **Comprobación 2: sin conexión**
 
 Esta prueba necesita la versión de prueba (Parte 5), porque la app de desarrollo necesita el ordenador.
 
-28. **Vuelve a compilar la versión de prueba** con el mismo comando del paso 15 de la Parte 5, `npx eas-cli build --profile preview --platform android`. También necesita el módulo nativo. (Esperar entre 15 y 25 min.)
-29. **Instala el APK de prueba** con el enlace nuevo, como en el paso 16 de la Parte 5. Reemplaza la app de desarrollo. (5 min)
-30. **Ábrela una vez con conexión** y espera a que carguen los horarios y el mapa. (2 min)
-31. **Activa el modo avión, cierra la app por completo y vuelve a abrirla.** No arranques ningún servidor. (2 min)
-32. **Cerca de mí sin conexión:** debe salir el recuadro "Mapa no disponible sin conexión" en lugar del mapa, y la lista de paradas debe seguir funcionando. (2 min)
-33. **Detalle de una línea sin conexión:** debe salir el mismo recuadro, y la lista de paradas debe seguir funcionando. Si falla, avisa del fallo tal cual. (2 min)
-34. **Restaura la app de desarrollo:** instala el APK de desarrollo nuevo, con el enlace del paso 23 (o en https://expo.dev, tu proyecto, Builds, la compilación de tipo development). (5 min)
+30. **Vuelve a compilar la versión de prueba** con el mismo comando del paso 15 de la Parte 5, `npx eas-cli build --profile preview --platform android`. También necesita el módulo nativo. (Esperar entre 15 y 25 min.)
+31. **Instala el APK de prueba** con el enlace nuevo, como en el paso 16 de la Parte 5. Reemplaza la app de desarrollo. (5 min)
+32. **Ábrela una vez con conexión** y espera a que carguen los horarios y el mapa. (2 min)
+33. **Activa el modo avión.** (1 min)
+34. **Cierra la app por completo.** (1 min)
+35. **Vuelve a abrir la app.** No arranques ningún servidor. (1 min)
+36. **Cerca de mí sin conexión:** debe salir el recuadro "Mapa no disponible sin conexión" en lugar del mapa, y la lista de paradas debe seguir funcionando. (2 min)
+37. **Detalle de una línea sin conexión:** debe salir el mismo recuadro, y la lista de paradas debe seguir funcionando. Si falla, avisa del fallo tal cual. (2 min)
+38. **Restaura la app de desarrollo:** instala el APK de desarrollo nuevo, con el enlace del paso 23 (o en https://expo.dev, tu proyecto, Builds, la compilación de tipo development). (5 min)
 
 ## Si algo falla
 
