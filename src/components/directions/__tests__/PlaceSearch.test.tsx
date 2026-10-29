@@ -1,5 +1,5 @@
 // Pruebas del buscador de lugares: solo busca al pulsar Buscar o Intro y enseña la lista y los errores.
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import { initI18n } from '@/i18n';
 import { type Place, SearchError } from '@/lib/placeSearch';
@@ -76,6 +76,53 @@ describe('PlaceSearch', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Reintentar' }));
     expect(await screen.findByText('Calle Luz')).toBeTruthy();
     expect(search).toHaveBeenCalledTimes(2);
+  });
+
+  it('si llegan fuera de orden dos búsquedas, solo valen los resultados de la más nueva', async () => {
+    const plaza: Place = { id: 'N2', name: 'Plaza Arenal', detail: 'Centro', lat: 36.68, lon: -6.13 };
+    let resolveOld: (p: Place[]) => void = () => {};
+    let resolveNew: (p: Place[]) => void = () => {};
+    const search = jest
+      .fn()
+      .mockImplementationOnce(() => new Promise<Place[]>((r) => (resolveOld = r)))
+      .mockImplementationOnce(() => new Promise<Place[]>((r) => (resolveNew = r)));
+    await setup(search);
+    await fireEvent.changeText(screen.getByLabelText('Buscar un lugar'), 'Luz');
+    await fireEvent.press(screen.getByRole('button', { name: 'Buscar' }));
+    await fireEvent.changeText(screen.getByLabelText('Buscar un lugar'), 'Plaza');
+    await fireEvent.press(screen.getByRole('button', { name: 'Buscar' }));
+    await act(async () => resolveNew([plaza]));
+    await act(async () => resolveOld([luz]));
+    expect(screen.getByText('Plaza Arenal')).toBeTruthy();
+    expect(screen.queryByText('Calle Luz')).toBeNull();
+    expect(screen.queryByText('Buscando…')).toBeNull();
+  });
+
+  it('una respuesta offline de una búsqueda antigua no avisa a la pantalla', async () => {
+    const onOffline = jest.fn();
+    let rejectOld: (e: unknown) => void = () => {};
+    const search = jest
+      .fn()
+      .mockImplementationOnce(() => new Promise<Place[]>((_r, rej) => (rejectOld = rej)))
+      .mockResolvedValueOnce([luz]);
+    await setup(search, { onOffline });
+    await fireEvent.changeText(screen.getByLabelText('Buscar un lugar'), 'Luz');
+    await fireEvent.press(screen.getByRole('button', { name: 'Buscar' }));
+    await fireEvent.changeText(screen.getByLabelText('Buscar un lugar'), 'Plaza');
+    await fireEvent.press(screen.getByRole('button', { name: 'Buscar' }));
+    await act(async () => rejectOld(new SearchError('offline')));
+    expect(onOffline).not.toHaveBeenCalled();
+  });
+
+  it('un doble toque en Buscar llama a la búsqueda una sola vez', async () => {
+    let resolve: (p: Place[]) => void = () => {};
+    const search = jest.fn().mockImplementation(() => new Promise<Place[]>((r) => (resolve = r)));
+    await setup(search);
+    await fireEvent.changeText(screen.getByLabelText('Buscar un lugar'), 'Luz');
+    await fireEvent.press(screen.getByRole('button', { name: 'Buscar' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Buscar' }));
+    expect(search).toHaveBeenCalledTimes(1);
+    await act(async () => resolve([luz]));
   });
 
   it('offline: avisa a la pantalla con onOffline', async () => {

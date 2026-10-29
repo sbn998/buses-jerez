@@ -35,7 +35,8 @@ export default function ComoLlego() {
   // Comprueba si hay internet de verdad y guarda el resultado.
   const check = useCallback(async () => {
     const id = ++checkId.current;
-    setConnection('checking');
+    // Si ya hay conexión, se vuelve a comprobar en segundo plano para no perder lo escrito.
+    setConnection((c) => (c === 'online' ? c : 'checking'));
     const online = await isOnline();
     if (id === checkId.current) setConnection(online ? 'online' : 'offline');
   }, []);

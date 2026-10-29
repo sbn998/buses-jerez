@@ -27,37 +27,48 @@ export function PlaceSearch({ placeholder, onPick, search = searchPlaces, onOffl
   const [results, setResults] = useState<Place[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<'tooShort' | 'busy' | 'failed' | null>(null);
-  // Para no tocar el estado si la pantalla ya ha quitado este componente mientras se buscaba.
-  const mounted = useRef(true);
+  // Número de la última búsqueda: si llega una respuesta de una búsqueda anterior, se ignora.
+  const searchId = useRef(0);
+  // Texto de la búsqueda en curso (null si no hay ninguna): evita pedir lo mismo dos veces con un doble toque.
+  const inFlight = useRef<string | null>(null);
+  // Al quitar el componente se descartan las respuestas pendientes.
   useEffect(() => {
-    mounted.current = true;
     return () => {
-      mounted.current = false;
+      searchId.current++;
     };
   }, []);
 
   // Lanza la búsqueda: comprueba las letras, pide los lugares y guarda la lista o el error.
   async function submit() {
     const text = query.trim();
+    if (inFlight.current === text) return;
+    const id = ++searchId.current;
     setResults(null);
     if (text.length < MIN_LETTERS) {
+      inFlight.current = null;
+      setLoading(false);
       setError('tooShort');
       return;
     }
     setError(null);
     setLoading(true);
+    inFlight.current = text;
     try {
       const places = await search(text);
-      if (mounted.current) setResults(places);
+      if (id === searchId.current) setResults(places);
     } catch (e) {
+      if (id !== searchId.current) return;
       const kind = e instanceof SearchError ? e.kind : 'failed';
       if (kind === 'offline') {
         onOffline?.();
-      } else if (mounted.current) {
+      } else {
         setError(kind);
       }
     } finally {
-      if (mounted.current) setLoading(false);
+      if (id === searchId.current) {
+        inFlight.current = null;
+        setLoading(false);
+      }
     }
   }
 
@@ -71,12 +82,12 @@ export function PlaceSearch({ placeholder, onPick, search = searchPlaces, onOffl
           placeholderTextColor={theme.textSecondary}
           accessibilityLabel={t('directions.searchLabel')}
           returnKeyType="search"
-          onSubmitEditing={submit}
+          onSubmitEditing={() => void submit()}
           autoCorrect={false}
           style={[styles.input, { color: theme.text, backgroundColor: theme.backgroundElement }]}
         />
         <Pressable
-          onPress={submit}
+          onPress={() => void submit()}
           accessibilityRole="button"
           accessibilityLabel={t('directions.search')}
           style={[styles.button, { backgroundColor: theme.backgroundSelected }]}
@@ -92,7 +103,7 @@ export function PlaceSearch({ placeholder, onPick, search = searchPlaces, onOffl
         <View style={styles.row}>
           <ThemedText>{t('directions.failed')}</ThemedText>
           <Pressable
-            onPress={submit}
+            onPress={() => void submit()}
             accessibilityRole="button"
             accessibilityLabel={t('directions.retrySearch')}
             style={[styles.button, { backgroundColor: theme.backgroundSelected }]}

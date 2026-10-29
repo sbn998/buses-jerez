@@ -26,6 +26,9 @@ const plaza: Place = { id: 'N2', name: 'Plaza del Arenal', detail: 'Centro', lat
 beforeAll(() => {
   initI18n('es');
 });
+afterEach(() => {
+  jest.restoreAllMocks();
+});
 beforeEach(() => {
   mockOnline.mockReset().mockResolvedValue(true);
   mockSearch.mockReset().mockResolvedValue([luz]);
@@ -33,9 +36,10 @@ beforeEach(() => {
 });
 
 async function renderScreen() {
-  await render(<ComoLlego />);
+  const view = await render(<ComoLlego />);
   // Espera a que termine la comprobación de conexión.
   await screen.findByLabelText('Buscar un lugar');
+  return view;
 }
 
 async function search(text: string) {
@@ -70,13 +74,45 @@ describe('pantalla Cómo llego', () => {
       listener = fn;
       return { remove };
     }) as never);
-    await renderScreen();
+    const view = await renderScreen();
     expect(mockOnline).toHaveBeenCalledTimes(1);
     mockOnline.mockResolvedValue(false);
     await act(async () => listener('active'));
     expect(await screen.findByText('Esta función necesita conexión')).toBeTruthy();
     expect(mockOnline).toHaveBeenCalledTimes(2);
-    jest.restoreAllMocks();
+    await view.unmount();
+    expect(remove).toHaveBeenCalled();
+  });
+
+  it('al volver a primer plano con conexión no se pierde lo escrito', async () => {
+    let listener: (state: string) => void = () => {};
+    jest.spyOn(AppState, 'addEventListener').mockImplementation(((_t: string, fn: (s: string) => void) => {
+      listener = fn;
+      return { remove: jest.fn() };
+    }) as never);
+    await renderScreen();
+    await fireEvent.changeText(screen.getByLabelText('Buscar un lugar'), 'Luz');
+    await act(async () => listener('active'));
+    expect(mockOnline).toHaveBeenCalledTimes(2);
+    expect(screen.getByLabelText('Buscar un lugar').props.value).toBe('Luz');
+  });
+
+  it('una comprobación de conexión antigua no pisa a la nueva', async () => {
+    let listener: (state: string) => void = () => {};
+    jest.spyOn(AppState, 'addEventListener').mockImplementation(((_t: string, fn: (s: string) => void) => {
+      listener = fn;
+      return { remove: jest.fn() };
+    }) as never);
+    // La primera comprobación (al abrir) tarda y dirá "hay conexión" cuando ya no importa.
+    let resolveFirst: (v: boolean) => void = () => {};
+    mockOnline.mockImplementationOnce(() => new Promise<boolean>((r) => (resolveFirst = r)));
+    mockOnline.mockResolvedValueOnce(false);
+    await render(<ComoLlego />);
+    await act(async () => listener('active'));
+    expect(await screen.findByText('Esta función necesita conexión')).toBeTruthy();
+    await act(async () => resolveFirst(true));
+    expect(screen.getByText('Esta función necesita conexión')).toBeTruthy();
+    expect(screen.queryByLabelText('Buscar un lugar')).toBeNull();
   });
 
   it('al buscar "Luz" sale la lista y al tocar un lugar queda como destino', async () => {
