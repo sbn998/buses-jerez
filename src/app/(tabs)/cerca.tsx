@@ -3,7 +3,7 @@
 import { useRouter } from 'expo-router';
 import { type ComponentRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { JerezMap, type MapStatus } from '@/components/map/JerezMap';
@@ -55,6 +55,9 @@ export default function Cerca() {
     return { center: [coords.lon, coords.lat] as [number, number], zoom: 15 };
   }, [coords, mapStops]);
 
+  // Cada pulsación de "Centrar en mí" cambia este número y el mapa vuelve a encuadrar la vista.
+  const [recenterKey, setRecenterKey] = useState(0);
+
   // Para llevar la lista hasta una parada tocada en el mapa: guardamos dónde está cada tarjeta.
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const cardY = useRef<Record<string, number>>({});
@@ -88,7 +91,17 @@ export default function Cerca() {
               user={coords}
               onStopPress={openFromMap}
               onStatusChange={setMapStatus}
+              recenterKey={recenterKey}
             />
+            {/* Solo hay botón si hay posición: sin ubicación no hay a dónde centrar. */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('nearby.recenter')}
+              onPress={() => setRecenterKey((k) => k + 1)}
+              style={[styles.recenter, { backgroundColor: theme.backgroundElement }]}
+            >
+              <ThemedText type="small">{t('nearby.recenter')}</ThemedText>
+            </Pressable>
             {hasApproximate && mapStatus !== 'unavailable' ? (
               <ThemedText type="small" themeColor="textSecondary">
                 {t('nearby.approxLegend')}
@@ -143,6 +156,15 @@ export default function Cerca() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: Spacing.three, paddingBottom: BottomTabInset + Spacing.four, gap: Spacing.three },
+  recenter: {
+    position: 'absolute',
+    top: Spacing.two,
+    right: Spacing.two,
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.three,
+    borderRadius: Spacing.two,
+  },
   mapBox: { gap: Spacing.one, borderRadius: Spacing.three, overflow: 'hidden' },
 });
 

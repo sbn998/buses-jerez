@@ -286,5 +286,34 @@ describe('pantalla Cerca de mí', () => {
       );
       expect(screen.queryByText('○ ubicación aproximada')).toBeNull();
     });
+
+    it('"Centrar en mí" vuelve a encuadrar al usuario y las paradas', async () => {
+      await renderScreen();
+      expect(getRecorded().cameraCalls).toEqual([]);
+      await fireEvent.press(screen.getByRole('button', { name: 'Centrar en mí' }));
+      const calls = getRecorded().cameraCalls;
+      expect(calls).toHaveLength(1);
+      expect(calls[0].method).toBe('fitBounds');
+      expect(calls[0].args[0]).toEqual([0, 0, 0, 0.003]);
+    });
+
+    it('"Centrar en mí" con una sola posición vuela al usuario', async () => {
+      mockLocation = { status: 'ready', coords: { lat: 0.001, lon: 0 }, retry: jest.fn() };
+      const only = { ...data, lines: [makeLine('1', ['A'], ['10:30'])], stops: { A: data.stops.A } };
+      await render(
+        <DataProvider value={{ data: only, source: 'bundled', checkedAt: null }}>
+          <Cerca />
+        </DataProvider>,
+      );
+      await fireEvent.press(screen.getByRole('button', { name: 'Centrar en mí' }));
+      expect(getRecorded().cameraCalls).toEqual([{ method: 'flyTo', args: [{ center: [0, 0.001], zoom: 15 }] }]);
+    });
+
+    it('sin ubicación (permiso denegado) no hay botón "Centrar en mí" y nada se rompe', async () => {
+      mockLocation = { status: 'denied', coords: null, retry: jest.fn() };
+      await renderScreen();
+      expect(screen.queryByRole('button', { name: 'Centrar en mí' })).toBeNull();
+      expect(getRecorded().cameraCalls).toEqual([]);
+    });
   });
 });

@@ -40,6 +40,7 @@ const en: Textos = {
     freshnessBundled: 'Official Comujesa timetables · copy included in the app, from {{date}}',
   },
   nearby: {
+    recenter: 'Center on me',
     closest: 'Closest stops',
     approxLocation: 'Your location is approximate (±{{meters}} m). Distances may not be exact.',
     approxLocationNoMeters: 'Your location is approximate. Distances may not be exact.',

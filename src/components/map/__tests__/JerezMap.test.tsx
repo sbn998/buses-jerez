@@ -245,4 +245,33 @@ describe('JerezMap con el mapa sin conexión', () => {
     expect(getRecorded().map.mapStyle.layers[0].type).toBe('background');
     expect(getRecorded().map.mapStyle.glyphs).toBeUndefined();
   });
+
+  describe('recenterKey', () => {
+    it('no mueve la cámara en el primer pintado', async () => {
+      await render(<JerezMap height={200} center={[-6.13, 36.68]} recenterKey={0} />);
+      expect(getRecorded().cameraCalls).toEqual([]);
+    });
+
+    it('al cambiar, vuela al centro indicado', async () => {
+      const view = await render(<JerezMap height={200} center={[-6.13, 36.68]} zoom={15} recenterKey={0} />);
+      await view.rerender(<JerezMap height={200} center={[-6.13, 36.68]} zoom={15} recenterKey={1} />);
+      expect(getRecorded().cameraCalls).toEqual([{ method: 'flyTo', args: [{ center: [-6.13, 36.68], zoom: 15 }] }]);
+    });
+
+    it('al cambiar, encuadra los límites si se dan', async () => {
+      const bounds: [number, number, number, number] = [-6.2, 36.6, -6.1, 36.7];
+      const view = await render(<JerezMap height={200} bounds={bounds} recenterKey={0} />);
+      await view.rerender(<JerezMap height={200} bounds={bounds} recenterKey={1} />);
+      const calls = getRecorded().cameraCalls;
+      expect(calls).toHaveLength(1);
+      expect(calls[0].method).toBe('fitBounds');
+      expect(calls[0].args[0]).toEqual(bounds);
+    });
+
+    it('sin recenterKey, nada se mueve aunque cambie la vista', async () => {
+      const view = await render(<JerezMap height={200} center={[-6.13, 36.68]} />);
+      await view.rerender(<JerezMap height={200} center={[-6.14, 36.69]} />);
+      expect(getRecorded().cameraCalls).toEqual([]);
+    });
+  });
 });

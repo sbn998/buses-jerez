@@ -35,6 +35,7 @@ const es = {
     freshnessBundled: 'Horarios oficiales de Comujesa · copia incluida en la app, del {{date}}',
   },
   nearby: {
+    recenter: 'Centrar en mí',
     stopsWithin: 'Paradas a menos de 500 m',
     closest: 'Paradas más cercanas',
     approxLocation: 'Tu ubicación es aproximada (±{{meters}} m). Las distancias pueden no ser exactas.',

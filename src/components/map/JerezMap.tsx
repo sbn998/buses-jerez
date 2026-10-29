@@ -12,6 +12,7 @@ import { readLocalStyle, useOfflineMap } from '@/lib/offlineMap';
 
 import { MapPlaceholder } from './MapPlaceholder';
 
+type CameraRef = import('@maplibre/maplibre-react-native').CameraRef;
 type MapLibre = typeof import('@maplibre/maplibre-react-native');
 type MapStyleObject = Exclude<import('@maplibre/maplibre-react-native').MapProps['mapStyle'], string | undefined>;
 
@@ -23,6 +24,9 @@ type DrawnStatus = Exclude<MapStatus, 'unavailable'>;
 // Milisegundos máximos que esperamos a que el mapa avise de que ha cargado.
 // MapLibre en Android puede esperar sin fin a que vuelva la conexión sin dar nunca error.
 const LOAD_TIMEOUT_MS = 8000;
+
+// Margen en píxeles entre el borde del mapa y la caja que se encuadra.
+const VIEW_PADDING = { top: 24, right: 24, bottom: 24, left: 24 };
 
 // Estilo de reserva: solo un fondo gris suave (sin calles). Las paradas y el usuario se dibujan encima.
 const FALLBACK_STYLE = {
@@ -72,6 +76,8 @@ export type JerezMapProps = {
   shapes?: { shapes: [number, number][][]; colour: string };
   user?: { lat: number; lon: number } | null;
   onStopPress?: (code: string) => void;
+  /** Cada vez que cambia (no en el primer pintado), la cámara vuelve a `bounds` o a `center`. */
+  recenterKey?: number;
   /** Avisa cuando cambia el estado del mapa (por ejemplo, para ocultar la leyenda si solo hay recuadro). */
   onStatusChange?: (status: MapStatus) => void;
 };
@@ -112,6 +118,7 @@ function MapContent({
   shapes,
   user,
   onStopPress,
+  recenterKey,
 }: Omit<JerezMapProps, 'onStatusChange'> & { maplibre: MapLibre; onPhaseChange: (phase: DrawnStatus) => void }) {
   const { Map, Camera, GeoJSONSource, Layer } = maplibre;
   const { t } = useTranslation();
@@ -136,6 +143,22 @@ function MapContent({
       cancelled = true;
     };
   }, [downloaded]);
+
+  // Cámara imperativa: cuando cambia `recenterKey` la llevamos de vuelta a la vista pedida.
+  // Se ignora el primer pintado (la vista inicial ya la pone `initialViewState`).
+  const cameraRef = useRef<CameraRef>(null);
+  const lastRecenter = useRef(recenterKey);
+  useEffect(() => {
+    if (recenterKey === lastRecenter.current) return;
+    lastRecenter.current = recenterKey;
+    try {
+      if (bounds) cameraRef.current?.fitBounds(bounds, { padding: VIEW_PADDING });
+      else if (center) cameraRef.current?.flyTo({ center, zoom: zoom ?? 14 });
+    } catch (error) {
+      // Mover la cámara nunca debe romper la pantalla.
+      if (__DEV__) console.warn('JerezMap: no se pudo mover la cámara', error);
+    }
+  }, [recenterKey, bounds, center, zoom]);
 
   // 'loading' = esperando al mapa; 'ready' = cargado; 'fallback' = fondo liso porque no ha cargado.
   const [phase, setPhase] = useState<DrawnStatus>('loading');
@@ -179,7 +202,7 @@ function MapContent({
 
   // Vista inicial: la caja dada, o centro y zoom, o toda la zona de Jerez.
   const initialViewState = bounds
-    ? { bounds, padding: { top: 24, right: 24, bottom: 24, left: 24 } }
+    ? { bounds, padding: VIEW_PADDING }
     : center
       ? { center, zoom: zoom ?? 14 }
       : { bounds: JEREZ_BOUNDS };
@@ -195,7 +218,7 @@ function MapContent({
         onDidFinishLoadingStyle={handleLoaded}
         onDidFinishLoadingMap={handleLoaded}
       >
-        <Camera initialViewState={initialViewState} minZoom={10} maxBounds={JEREZ_BOUNDS} />
+        <Camera ref={cameraRef} initialViewState={initialViewState} minZoom={10} maxBounds={JEREZ_BOUNDS} />
         {shapesData ? (
           <GeoJSONSource id="shapes" data={shapesData}>
             <Layer

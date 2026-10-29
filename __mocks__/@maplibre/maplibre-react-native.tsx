@@ -4,10 +4,12 @@
 // Las props llevan los tipos reales de la librería, así un error de configuración rompe el typecheck.
 import type {
   CameraProps,
+  CameraRef,
   GeoJSONSourceProps,
   LayerProps,
   MapProps,
 } from '@maplibre/maplibre-react-native';
+import { useImperativeHandle } from 'react';
 import { Pressable, View } from 'react-native';
 
 // Lo recibido se guarda en globalThis: Jest puede cargar este archivo dos veces
@@ -15,6 +17,8 @@ import { Pressable, View } from 'react-native';
 type Recorded = {
   map?: MapProps;
   camera?: CameraProps;
+  /** Movimientos pedidos a la cámara con su ref (flyTo, fitBounds…), en orden. */
+  cameraCalls: { method: 'jumpTo' | 'easeTo' | 'flyTo' | 'fitBounds'; args: unknown[] }[];
   layers: Record<string, LayerProps>;
   sources: Record<string, GeoJSONSourceProps>;
   /** true si Map debe lanzar un error al pintarse (simula una vista nativa rota). */
@@ -22,13 +26,13 @@ type Recorded = {
 };
 const store = globalThis as unknown as { __maplibreMock?: Recorded };
 function recorded(): Recorded {
-  store.__maplibreMock ??= { layers: {}, sources: {} };
+  store.__maplibreMock ??= { layers: {}, sources: {}, cameraCalls: [] };
   return store.__maplibreMock;
 }
 
 // Borra lo apuntado (lo llaman las pruebas antes de pintar).
 export function resetMock() {
-  store.__maplibreMock = { layers: {}, sources: {} };
+  store.__maplibreMock = { layers: {}, sources: {}, cameraCalls: [] };
 }
 
 // Devuelve lo que recibieron Map, Camera y cada Layer en el último pintado.
@@ -60,8 +64,23 @@ export function Map(props: MapProps) {
   return <View testID="map-view">{props.children}</View>;
 }
 
+// La cámara acepta una ref y apunta cada movimiento que se le pide.
 export function Camera(props: CameraProps) {
-  recorded().camera = props;
+  const { ref, ...rest } = props;
+  recorded().camera = rest;
+  const record = (method: Recorded['cameraCalls'][number]['method']) => (...args: unknown[]) => {
+    recorded().cameraCalls.push({ method, args });
+  };
+  useImperativeHandle(
+    ref,
+    () =>
+      ({
+        jumpTo: record('jumpTo'),
+        easeTo: record('easeTo'),
+        flyTo: record('flyTo'),
+        fitBounds: record('fitBounds'),
+      }) as unknown as CameraRef,
+  );
   return <View testID="map-camera" />;
 }
 
