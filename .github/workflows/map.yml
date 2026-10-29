@@ -1,0 +1,95 @@
+# Genera el mapa de Jerez (una vez al mes, o cuando se lanza a mano).
+#
+# El mapa se dibuja con datos de OpenStreetMap. Este proceso:
+#   1. Descarga de Geofabrik el mapa de toda Andalucía (una vez al mes como mucho).
+#   2. Recorta solo la zona de Jerez (osmium).
+#   3. Lo convierte en teselas vectoriales (tilemaker) dentro de un único archivo
+#      jerez.pmtiles, y falla si pesa más de 80 MB.
+#   4. Empaqueta las tipografías (Noto Sans Regular y Bold) en fonts.zip.
+#   5. Sube jerez.pmtiles y fonts.zip al Release "mapa" de este repositorio.
+# El proceso diario (data.yml) se baja ese Release y lo publica junto a los horarios
+# en https://sbn998.github.io/buses-jerez/map/.
+# Datos del mapa: © OpenStreetMap contributors (licencia ODbL).
+name: Mapa mensual
+
+on:
+  schedule:
+    - cron: '0 3 1 * *'
+  workflow_dispatch:
+
+# Hace falta escribir para poder crear el Release y subirle archivos.
+permissions:
+  contents: write
+
+jobs:
+  map:
+    runs-on: ubuntu-latest
+    env:
+      TILEMAKER_VERSION: v3.2.0
+    steps:
+      - name: Instalar herramientas (osmium para recortar, zip para las tipografías)
+        run: sudo apt-get update && sudo apt-get install -y osmium-tool zip
+
+      - name: Descargar Andalucía de Geofabrik
+        run: curl -fsSL -o andalucia.osm.pbf https://download.geofabrik.de/europe/spain/andalucia-latest.osm.pbf
+
+      - name: Recortar la zona de Jerez
+        # -b = caja "lon mínima, lat mínima, lon máxima, lat máxima": la misma que valida el pipeline.
+        run: osmium extract -b -6.35,36.55,-5.85,36.85 andalucia.osm.pbf -o jerez.osm.pbf --overwrite
+
+      # tilemaker v3.2.0 no publica programas ya compilados para Linux, y su imagen de
+      # Docker oficial solo existe como ":master" (no se puede fijar a una versión).
+      # Lo más fiable y repetible es compilar el código de la etiqueta v3.2.0 con las
+      # dependencias que indica su documentación (docs/INSTALL.md, apartado Ubuntu).
+      # Tarda unos minutos, que no importa para un proceso mensual.
+      - name: Compilar tilemaker
+        run: |
+          sudo apt-get install -y build-essential libboost-dev libboost-filesystem-dev \
+            libboost-program-options-dev libboost-system-dev lua5.3 liblua5.3-dev \
+            libshp-dev libsqlite3-dev rapidjson-dev
+          git clone --depth 1 --branch "$TILEMAKER_VERSION" https://github.com/systemed/tilemaker.git tilemaker-src
+          make -C tilemaker-src -j"$(nproc)"
+
+      - name: Generar jerez.pmtiles
+        # La configuración incluida trae 4 capas que necesitan archivos de costa y
+        # glaciares que no descargamos (ocean, urban_areas, ice_shelf y glacier); con jq
+        # las quitamos. El resto del mapa (calles, edificios, parques, agua...) sale de
+        # OpenStreetMap. maxzoom 14: MapLibre amplía esas teselas hasta el zoom 16 o más.
+        run: |
+          jq 'del(.layers.ocean, .layers.urban_areas, .layers.ice_shelf, .layers.glacier) | .settings.maxzoom = 14' \
+            tilemaker-src/resources/config-openmaptiles.json > config.json
+          ./tilemaker-src/tilemaker \
+            --input jerez.osm.pbf \
+            --output jerez.pmtiles \
+            --config config.json \
+            --process tilemaker-src/resources/process-openmaptiles.lua
+
+      - name: Comprobar que no pesa más de 80 MB
+        run: |
+          size=$(stat -c %s jerez.pmtiles)
+          echo "jerez.pmtiles pesa ${size} bytes"
+          if [ "$size" -gt 83886080 ]; then
+            echo "::error::jerez.pmtiles pesa más de 80 MB"
+            exit 1
+          fi
+
+      - name: Preparar las tipografías
+        # El zip original trae una carpeta por tipografía ("Noto Sans Regular/0-255.pbf"...).
+        # Nos quedamos solo con dos; al descomprimir fonts.zip dentro de map/fonts/ queda
+        # fonts/<tipografía>/<rango>.pbf, que es lo que pide el estilo.
+        run: |
+          curl -fsSL -o noto-sans.zip https://github.com/openmaptiles/fonts/releases/download/v2.0/noto-sans.zip
+          unzip -q noto-sans.zip "Noto Sans Regular/*" "Noto Sans Bold/*" -d fonts-src
+          (cd fonts-src && zip -qr ../fonts.zip .)
+
+      - name: Subir al Release "mapa"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view mapa --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload mapa jerez.pmtiles fonts.zip --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create mapa jerez.pmtiles fonts.zip --repo "$GITHUB_REPOSITORY" \
+              --title "Mapa de Jerez" \
+              --notes "Mapa de Jerez generado con datos de OpenStreetMap (© OpenStreetMap contributors, ODbL). Lo crea el proceso Mapa mensual; no editar a mano."
+          fi

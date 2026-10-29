@@ -52,3 +52,45 @@ Las piezas se van añadiendo conforme se construyen. Cada archivo empieza con un
 | `src/previous.ts` | Descarga la versión publicada anterior para comparar. Si falla por algo que no sea "todavía no existe", no se publica. |
 | `src/checkHolidays.ts` | Comprueba si faltan festivos locales. GitHub lo ejecuta el día 1 de cada mes y, si faltan, abre una Issue (te llega por correo). |
 | `src/checkTopUp.ts` | Comprueba si Comujesa ha subido otro cartel de recarga. Lo ejecuta el mismo proceso mensual de GitHub y, si ha cambiado, abre una Issue. |
+| `src/map/style.ts` | El estilo del mapa (colores y capas) para teselas de OpenStreetMap en formato OpenMapTiles. |
+| `src/map/writeStyle.ts` | Escribe ese estilo en `out/map/style.json` (`npm run write-style`). Lo ejecuta el proceso diario. |
+
+## El mapa de Jerez
+
+El mapa se dibuja con datos de OpenStreetMap (© OpenStreetMap contributors, licencia ODbL) y no cuesta dinero: se genera una vez al mes en GitHub y se publica en la misma web que los horarios.
+
+- **Mensual** (`.github/workflows/map.yml`, el día 1 de cada mes o a mano desde Actions → "Mapa mensual" → "Run workflow"): descarga Andalucía de Geofabrik, recorta Jerez, genera `jerez.pmtiles` y `fonts.zip` y los sube al Release `mapa` del repositorio. Si `jerez.pmtiles` pesa más de 80 MB, el proceso falla.
+- **Diario** (`.github/workflows/data.yml`): después de `build-data` se baja el Release `mapa`, descomprime las tipografías en `out/map/fonts/` y ejecuta `npm run write-style`. Si el Release no existe todavía, avisa (`::warning::`) y publica los horarios sin mapa.
+- **Primera vez**: lanza "Mapa mensual" a mano, y después "Datos diarios".
+- **Direcciones públicas**: `https://sbn998.github.io/buses-jerez/map/style.json`, `…/map/jerez.pmtiles` y `…/map/fonts/{fontstack}/{range}.pbf`.
+
+### Comandos exactos (para repetirlos a mano en Linux o Ubuntu)
+
+```bash
+sudo apt-get install -y osmium-tool zip
+curl -fsSL -o andalucia.osm.pbf https://download.geofabrik.de/europe/spain/andalucia-latest.osm.pbf
+osmium extract -b -6.35,36.55,-5.85,36.85 andalucia.osm.pbf -o jerez.osm.pbf --overwrite
+```
+
+tilemaker v3.2.0 no publica programas para Linux y su imagen de Docker solo existe como `:master`, así que se compila la etiqueta v3.2.0 (dependencias según su `docs/INSTALL.md`):
+
+```bash
+sudo apt-get install -y build-essential libboost-dev libboost-filesystem-dev \
+  libboost-program-options-dev libboost-system-dev lua5.3 liblua5.3-dev \
+  libshp-dev libsqlite3-dev rapidjson-dev
+git clone --depth 1 --branch v3.2.0 https://github.com/systemed/tilemaker.git tilemaker-src
+make -C tilemaker-src -j"$(nproc)"
+# La configuración incluida pide archivos de costa y glaciares que no descargamos: se quitan esas 4 capas.
+jq 'del(.layers.ocean, .layers.urban_areas, .layers.ice_shelf, .layers.glacier) | .settings.maxzoom = 14' \
+  tilemaker-src/resources/config-openmaptiles.json > config.json
+./tilemaker-src/tilemaker --input jerez.osm.pbf --output jerez.pmtiles \
+  --config config.json --process tilemaker-src/resources/process-openmaptiles.lua
+```
+
+Con `maxzoom 14` las teselas se amplían en la app hasta el zoom 16 o más sin perder calidad. Tipografías (solo "Noto Sans Regular" y "Noto Sans Bold"):
+
+```bash
+curl -fsSL -o noto-sans.zip https://github.com/openmaptiles/fonts/releases/download/v2.0/noto-sans.zip
+unzip -q noto-sans.zip "Noto Sans Regular/*" "Noto Sans Bold/*" -d fonts-src
+(cd fonts-src && zip -qr ../fonts.zip .)
+```

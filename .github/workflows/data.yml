@@ -39,6 +39,20 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build-data
+      # Trae el mapa del Release "mapa" (lo genera map.yml una vez al mes) y lo deja en
+      # out/map/. Si el Release todavía no existe, avisa y publica los horarios sin mapa.
+      - name: Traer el mapa
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release download mapa --repo "$GITHUB_REPOSITORY" -D out/map --pattern '*'; then
+            unzip -q out/map/fonts.zip -d out/map/fonts
+            rm out/map/fonts.zip
+            npm run write-style
+          else
+            rm -rf out/map
+            echo "::warning::No hay Release 'mapa': se publica sin mapa. Lanza el proceso Mapa mensual a mano."
+          fi
       - uses: actions/upload-pages-artifact@v3
         with:
           path: pipeline/out
