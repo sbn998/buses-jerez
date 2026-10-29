@@ -1,5 +1,6 @@
 // Pruebas del estilo del mapa: fuentes, glifos, capas y tipografías permitidas.
 import { describe, expect, it } from 'vitest';
+import { validateStyleMin } from '@maplibre/maplibre-gl-style-spec';
 import { buildStyle } from '../src/map/style';
 
 const style = buildStyle('https://x') as any;
@@ -46,5 +47,10 @@ describe('buildStyle', () => {
         expect(['Noto Sans Regular', 'Noto Sans Bold']).toContain(f);
       }
     }
+  });
+
+  it('is valid against the official MapLibre style spec', () => {
+    const errors = validateStyleMin(buildStyle('https://x') as any);
+    expect(errors.map((e) => e.message)).toEqual([]);
   });
 });
