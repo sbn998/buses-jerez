@@ -70,7 +70,7 @@ const manyData: Dataset = {
 };
 
 // Ayudas que solo existen en el mock de MapLibre (carpeta __mocks__ de la raíz).
-const { failMapLoading, getRecorded, resetMock } = jest.requireMock('@maplibre/maplibre-react-native');
+const { failMapLoading, breakMapRendering, getRecorded, resetMock } = jest.requireMock('@maplibre/maplibre-react-native');
 
 function renderScreen(dataset: Dataset = data) {
   return render(
@@ -140,13 +140,24 @@ describe('detalle de línea', () => {
     expect(openSchedule).toHaveBeenCalledWith(mockRouter, '80', 'P7');
   });
 
-  it('si el mapa falla, se ve el recuadro y la lista sigue', async () => {
+  it('si el mapa falla, sigue con fondo liso y aviso, y la lista sigue', async () => {
     await renderScreen();
     await act(async () => failMapLoading());
-    expect(screen.getByText('Mapa no disponible sin conexión')).toBeTruthy();
-    expect(screen.queryByTestId('map-view')).toBeNull();
+    expect(screen.getByText('Mapa no disponible ahora mismo')).toBeTruthy();
+    expect(screen.getByTestId('map-view')).toBeTruthy();
+    expect(screen.getByText('○ ubicación aproximada')).toBeTruthy();
     expect(screen.getByText('Hacia Norte')).toBeTruthy();
-    expect(screen.getAllByRole('button')).toHaveLength(6);
+    expect(screen.getAllByRole('button')).toHaveLength(7); // 6 de la pantalla + Reintentar del mapa
+  });
+
+  it('sin motor de mapas (solo el recuadro de texto) no sale la leyenda', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    breakMapRendering();
+    await renderScreen();
+    expect(screen.getByText('Mapa no disponible ahora mismo')).toBeTruthy();
+    expect(screen.queryByText('○ ubicación aproximada')).toBeNull();
+    jest.restoreAllMocks();
   });
 
   it('con una parada aproximada muestra la leyenda bajo el mapa', async () => {

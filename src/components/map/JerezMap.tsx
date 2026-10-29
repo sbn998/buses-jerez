@@ -1,7 +1,10 @@
 // Mapa de Jerez con MapLibre (paradas, recorridos y posición del usuario).
-// Si el módulo nativo no existe (Jest, Expo Go) o el mapa falla, muestra MapPlaceholder: nunca bloquea la pantalla.
-import { Component, type ReactNode, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+// Si el módulo nativo no existe (Jest, Expo Go) muestra MapPlaceholder: ahí no hay motor de mapas que dibuje nada.
+// Si el mapa no consigue cargar (sin conexión, o sin respuesta en 8 s), sigue dibujando las paradas y al usuario
+// sobre un fondo liso, con un aviso y un botón "Reintentar". El mapa nunca bloquea la pantalla.
+import { Component, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { Stop } from '@/data/schema';
 import { JEREZ_BOUNDS, MAP_STYLE_URL, shapesToGeoJSON, stopsToGeoJSON } from '@/lib/mapLayers';
@@ -9,6 +12,22 @@ import { JEREZ_BOUNDS, MAP_STYLE_URL, shapesToGeoJSON, stopsToGeoJSON } from '@/
 import { MapPlaceholder } from './MapPlaceholder';
 
 type MapLibre = typeof import('@maplibre/maplibre-react-native');
+
+// Estado del mapa que se avisa a la pantalla:
+// loading = cargando, ready = cargado, fallback = fondo liso con paradas, unavailable = solo el recuadro de texto.
+export type MapStatus = 'loading' | 'ready' | 'fallback' | 'unavailable';
+type DrawnStatus = Exclude<MapStatus, 'unavailable'>;
+
+// Milisegundos máximos que esperamos a que el mapa avise de que ha cargado.
+// MapLibre en Android puede esperar sin fin a que vuelva la conexión sin dar nunca error.
+const LOAD_TIMEOUT_MS = 8000;
+
+// Estilo de reserva: solo un fondo gris suave (sin calles). Las paradas y el usuario se dibujan encima.
+const FALLBACK_STYLE = {
+  version: 8 as const,
+  sources: {},
+  layers: [{ id: 'bg', type: 'background' as const, paint: { 'background-color': '#e5e7eb' } }],
+};
 
 // Carga MapLibre solo cuando hace falta. Si el módulo nativo no está, `require` falla y devolvemos null.
 function loadMapLibre(): MapLibre | null {
@@ -21,15 +40,19 @@ function loadMapLibre(): MapLibre | null {
   }
 }
 
-// Un error al pintar el mapa (por ejemplo, vista nativa ausente) se convierte en el recuadro de reserva.
-class MapErrorBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
+// Un error al pintar el mapa (por ejemplo, vista nativa ausente) se convierte en el recuadro de texto.
+class MapErrorBoundary extends Component<
+  { fallback: ReactNode; onError: () => void; children: ReactNode },
+  { failed: boolean }
+> {
   state = { failed: false };
   static getDerivedStateFromError() {
     return { failed: true };
   }
-  // Solo en desarrollo, deja el error en la consola para poder investigarlo.
+  // Avisa al padre (para informar del estado) y, solo en desarrollo, deja el error en la consola.
   componentDidCatch(error: Error) {
     if (__DEV__) console.warn('JerezMap: error al pintar el mapa', error);
+    this.props.onError();
   }
   render() {
     return this.state.failed ? this.props.fallback : this.props.children;
@@ -47,25 +70,38 @@ export type JerezMapProps = {
   shapes?: { shapes: [number, number][][]; colour: string };
   user?: { lat: number; lon: number } | null;
   onStopPress?: (code: string) => void;
+  /** Avisa cuando cambia el estado del mapa (por ejemplo, para ocultar la leyenda si solo hay recuadro). */
+  onStatusChange?: (status: MapStatus) => void;
 };
 
 const EMPTY_STOPS: Stop[] = [];
 
 export function JerezMap(props: JerezMapProps) {
-  const [failed, setFailed] = useState(false);
+  const [crashed, setCrashed] = useState(false);
+  const [drawnStatus, setDrawnStatus] = useState<DrawnStatus>('loading');
   const maplibre = useMemo(loadMapLibre, []);
-  const fallback = <MapPlaceholder height={props.height} />;
-  if (!maplibre || failed) return fallback;
+  const status: MapStatus = !maplibre || crashed ? 'unavailable' : drawnStatus;
+
+  // Avisamos a la pantalla cada vez que cambia el estado. La función se guarda en una ref
+  // para que recibir una nueva en cada pintado no dispare el aviso otra vez.
+  const onStatusChange = useRef(props.onStatusChange);
+  onStatusChange.current = props.onStatusChange;
+  useEffect(() => {
+    onStatusChange.current?.(status);
+  }, [status]);
+
+  const placeholder = <MapPlaceholder height={props.height} />;
+  if (!maplibre || crashed) return placeholder;
   return (
-    <MapErrorBoundary fallback={fallback}>
-      <MapContent {...props} maplibre={maplibre} onFail={() => setFailed(true)} />
+    <MapErrorBoundary fallback={placeholder} onError={() => setCrashed(true)}>
+      <MapContent {...props} maplibre={maplibre} onPhaseChange={setDrawnStatus} />
     </MapErrorBoundary>
   );
 }
 
 function MapContent({
   maplibre,
-  onFail,
+  onPhaseChange,
   height,
   center,
   zoom,
@@ -74,8 +110,38 @@ function MapContent({
   shapes,
   user,
   onStopPress,
-}: JerezMapProps & { maplibre: MapLibre; onFail: () => void }) {
+}: Omit<JerezMapProps, 'onStatusChange'> & { maplibre: MapLibre; onPhaseChange: (phase: DrawnStatus) => void }) {
   const { Map, Camera, GeoJSONSource, Layer } = maplibre;
+  const { t } = useTranslation();
+
+  // 'loading' = esperando al mapa; 'ready' = cargado; 'fallback' = fondo liso porque no ha cargado.
+  const [phase, setPhase] = useState<DrawnStatus>('loading');
+  useEffect(() => {
+    onPhaseChange(phase);
+  }, [phase, onPhaseChange]);
+
+  // Mientras carga, arrancamos un reloj de 8 s: si el mapa no avisa a tiempo, pasamos al fondo liso.
+  // Al salir de 'loading' o al desmontar, el reloj se cancela.
+  useEffect(() => {
+    if (phase !== 'loading') return;
+    const timer = setTimeout(() => setPhase('fallback'), LOAD_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [phase]);
+
+  // El mapa avisa de que ha cargado. Si ya estamos en el fondo liso, el aviso es del propio fondo y se ignora.
+  const handleLoaded = useCallback(() => setPhase((p) => (p === 'loading' ? 'ready' : p)), []);
+  // La carga falla: fondo liso. Si el mapa ya se había cargado (por ejemplo, desde la caché), lo dejamos.
+  const handleFailed = useCallback(() => setPhase((p) => (p === 'loading' ? 'fallback' : p)), []);
+  const retry = useCallback(() => setPhase('loading'), []);
+
+  // Al volver a la app desde segundo plano con el fondo liso, lo reintentamos.
+  useEffect(() => {
+    if (phase !== 'fallback') return;
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') setPhase('loading');
+    });
+    return () => subscription.remove();
+  }, [phase]);
 
   const stopsData = useMemo(() => stopsToGeoJSON(stops), [stops]);
   const shapesData = useMemo(
@@ -99,10 +165,12 @@ function MapContent({
     <View style={{ height }}>
       <Map
         style={styles.fill}
-        mapStyle={MAP_STYLE_URL}
+        mapStyle={phase === 'fallback' ? FALLBACK_STYLE : MAP_STYLE_URL}
         attribution={false}
         logo={false}
-        onDidFailLoadingMap={onFail}
+        onDidFailLoadingMap={handleFailed}
+        onDidFinishLoadingStyle={handleLoaded}
+        onDidFinishLoadingMap={handleLoaded}
       >
         <Camera initialViewState={initialViewState} minZoom={10} maxBounds={JEREZ_BOUNDS} />
         {shapesData ? (
@@ -118,6 +186,8 @@ function MapContent({
         <GeoJSONSource
           id="stops"
           data={stopsData}
+          // Zona de toque ampliada 16 px por cada lado: las paradas son pequeñas y cuesta acertar con el dedo.
+          hitbox={{ top: 16, right: 16, bottom: 16, left: 16 }}
           onPress={(e) => {
             const code = e.nativeEvent.features[0]?.properties?.code;
             if (typeof code === 'string') onStopPress?.(code);
@@ -150,6 +220,15 @@ function MapContent({
           </GeoJSONSource>
         ) : null}
       </Map>
+      {/* Aviso sobre el fondo liso, con botón para volver a intentar cargar el mapa. */}
+      {phase === 'fallback' ? (
+        <View style={styles.banner}>
+          <Text style={styles.bannerText}>{t('map.unavailable')}</Text>
+          <Pressable accessibilityRole="button" onPress={retry} style={styles.retry}>
+            <Text style={styles.retryText}>{t('map.retry')}</Text>
+          </Pressable>
+        </View>
+      ) : null}
       {/* Atribución obligatoria por la licencia de OpenStreetMap (ODbL). */}
       <Text style={styles.attribution}>© OpenStreetMap</Text>
     </View>
@@ -158,6 +237,23 @@ function MapContent({
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
+  banner: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    right: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+  },
+  bannerText: { flexShrink: 1, fontSize: 13, color: '#1f2937' },
+  retry: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, backgroundColor: '#1f2937' },
+  retryText: { fontSize: 13, color: '#ffffff' },
   attribution: {
     position: 'absolute',
     left: 6,

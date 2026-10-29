@@ -62,7 +62,8 @@ const es = {
     back: 'Volver',
   },
   map: {
-    unavailable: 'Mapa no disponible sin conexión',
+    unavailable: 'Mapa no disponible ahora mismo',
+    retry: 'Reintentar',
   },
   common: {
     comingSoon: 'Próximamente',

@@ -67,7 +67,8 @@ const en: Textos = {
     back: 'Go back',
   },
   map: {
-    unavailable: 'Map unavailable offline',
+    unavailable: 'Map not available right now',
+    retry: 'Retry',
   },
   common: {
     comingSoon: 'Coming soon',

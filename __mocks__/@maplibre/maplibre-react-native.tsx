@@ -1,6 +1,6 @@
 // Simulación (mock) de MapLibre para Jest: el módulo nativo real no existe en las pruebas.
 // Pinta Views con testID, apunta lo que recibe cada componente (para que las pruebas lo comprueben)
-// y deja provocar el fallo de carga o la pulsación de una parada.
+// y deja provocar el fallo de carga, el fin de carga, un error al pintar o la pulsación de una parada.
 // Las props llevan los tipos reales de la librería, así un error de configuración rompe el typecheck.
 import type {
   CameraProps,
@@ -16,16 +16,19 @@ type Recorded = {
   map?: MapProps;
   camera?: CameraProps;
   layers: Record<string, LayerProps>;
+  sources: Record<string, GeoJSONSourceProps>;
+  /** true si Map debe lanzar un error al pintarse (simula una vista nativa rota). */
+  broken?: boolean;
 };
 const store = globalThis as unknown as { __maplibreMock?: Recorded };
 function recorded(): Recorded {
-  store.__maplibreMock ??= { layers: {} };
+  store.__maplibreMock ??= { layers: {}, sources: {} };
   return store.__maplibreMock;
 }
 
 // Borra lo apuntado (lo llaman las pruebas antes de pintar).
 export function resetMock() {
-  store.__maplibreMock = { layers: {} };
+  store.__maplibreMock = { layers: {}, sources: {} };
 }
 
 // Devuelve lo que recibieron Map, Camera y cada Layer en el último pintado.
@@ -38,7 +41,21 @@ export function failMapLoading() {
   recorded().map?.onDidFailLoadingMap?.({ nativeEvent: null } as never);
 }
 
+// Una prueba llama a finishStyleLoading() / finishMapLoading() para simular que el mapa ha terminado de cargar.
+export function finishStyleLoading() {
+  recorded().map?.onDidFinishLoadingStyle?.({ nativeEvent: null } as never);
+}
+export function finishMapLoading() {
+  recorded().map?.onDidFinishLoadingMap?.({ nativeEvent: null } as never);
+}
+
+// Una prueba llama a breakMapRendering() para que Map lance un error al pintarse.
+export function breakMapRendering() {
+  recorded().broken = true;
+}
+
 export function Map(props: MapProps) {
+  if (recorded().broken) throw new Error('fallo al pintar (simulado)');
   recorded().map = props;
   return <View testID="map-view">{props.children}</View>;
 }
@@ -50,7 +67,9 @@ export function Camera(props: CameraProps) {
 
 // Para probar la pulsación: un Pressable (`press-<id>`) que entrega la primera feature de los datos,
 // y uno por feature con código (`press-<id>-<código>`) para tocar una parada concreta.
-export function GeoJSONSource({ id, children, onPress, data }: GeoJSONSourceProps) {
+export function GeoJSONSource(props: GeoJSONSourceProps) {
+  const { id, children, onPress, data } = props;
+  if (id) recorded().sources[id] = props;
   const features = typeof data === 'object' && data.type === 'FeatureCollection' ? data.features : [];
   const first = features[0];
   return (

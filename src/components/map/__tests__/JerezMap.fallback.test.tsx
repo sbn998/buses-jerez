@@ -1,5 +1,5 @@
 // Pruebas del recuadro de reserva de JerezMap: si MapLibre no carga o falla al pintar,
-// se ve "Mapa no disponible sin conexión" y el motivo queda en la consola (solo en desarrollo).
+// se ve "Mapa no disponible ahora mismo" y el motivo queda en la consola (solo en desarrollo).
 import { render, screen } from '@testing-library/react-native';
 
 import { initI18n } from '@/i18n';
@@ -31,8 +31,17 @@ describe('JerezMap con MapLibre roto', () => {
     mockMode = 'no-module';
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     await render(<JerezMap height={200} />);
-    expect(screen.getByText('Mapa no disponible sin conexión')).toBeTruthy();
+    expect(screen.getByText('Mapa no disponible ahora mismo')).toBeTruthy();
     expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('sin módulo nativo avisa del estado unavailable', async () => {
+    mockMode = 'no-module';
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const onStatusChange = jest.fn();
+    await render(<JerezMap height={200} onStatusChange={onStatusChange} />);
+    expect(onStatusChange).toHaveBeenLastCalledWith('unavailable');
     warn.mockRestore();
   });
 
@@ -41,7 +50,7 @@ describe('JerezMap con MapLibre roto', () => {
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const error = jest.spyOn(console, 'error').mockImplementation(() => {}); // React también registra el error
     await render(<JerezMap height={200} />);
-    expect(screen.getByText('Mapa no disponible sin conexión')).toBeTruthy();
+    expect(screen.getByText('Mapa no disponible ahora mismo')).toBeTruthy();
     expect(warn).toHaveBeenCalled();
     warn.mockRestore();
     error.mockRestore();

@@ -1,4 +1,5 @@
 // Pruebas de JerezMap: pinta el mapa, avisa de las paradas tocadas y no bloquea si el mapa falla.
+import { AppState } from 'react-native';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 
 import type { Stop } from '@/data/schema';
@@ -8,7 +9,7 @@ import { JEREZ_BOUNDS, MAP_STYLE_URL } from '@/lib/mapLayers';
 import { JerezMap } from '../JerezMap';
 
 // Ayudas que solo existen en el mock de MapLibre (carpeta __mocks__ de la raíz).
-const { failMapLoading, getRecorded, resetMock } = jest.requireMock('@maplibre/maplibre-react-native');
+const { failMapLoading, finishMapLoading, finishStyleLoading, breakMapRendering, getRecorded, resetMock } = jest.requireMock('@maplibre/maplibre-react-native');
 
 beforeAll(() => {
   initI18n('es');
@@ -16,6 +17,11 @@ beforeAll(() => {
 
 beforeEach(() => {
   resetMock();
+});
+
+afterEach(() => {
+  jest.useRealTimers();
+  jest.restoreAllMocks();
 });
 
 const stop: Stop = {
@@ -44,11 +50,115 @@ describe('JerezMap', () => {
     expect(screen.getByText('© OpenStreetMap')).toBeTruthy();
   });
 
-  it('si el mapa falla al cargar, muestra el recuadro de sin conexión', async () => {
+  it('si el mapa falla al cargar, sigue el mapa con fondo liso, con paradas, aviso y botón de reintentar', async () => {
+    await render(<JerezMap height={200} stops={[stop]} user={{ lat: 36.68, lon: -6.13 }} />);
+    await act(async () => failMapLoading());
+    const style = getRecorded().map.mapStyle;
+    expect(typeof style).toBe('object');
+    expect(style.layers[0].type).toBe('background');
+    expect(screen.getByText('Mapa no disponible ahora mismo')).toBeTruthy();
+    expect(screen.getByText('Reintentar')).toBeTruthy();
+    // Las paradas y el usuario se siguen dibujando.
+    expect(screen.getByTestId('map-view')).toBeTruthy();
+    expect(screen.getByTestId('shape-source-stops')).toBeTruthy();
+    expect(screen.getByTestId('shape-source-user')).toBeTruthy();
+  });
+
+  it('si no llega ningún evento de carga en 8 s, pasa al fondo liso con el aviso', async () => {
+    jest.useFakeTimers();
+    await render(<JerezMap height={200} stops={[stop]} />);
+    await act(async () => {
+      jest.advanceTimersByTime(7999);
+    });
+    expect(getRecorded().map.mapStyle).toBe(MAP_STYLE_URL);
+    expect(screen.queryByText('Mapa no disponible ahora mismo')).toBeNull();
+    await act(async () => {
+      jest.advanceTimersByTime(1);
+    });
+    expect(getRecorded().map.mapStyle.layers[0].type).toBe('background');
+    expect(screen.getByText('Mapa no disponible ahora mismo')).toBeTruthy();
+    expect(screen.getByTestId('shape-source-stops')).toBeTruthy();
+  });
+
+  it.each([
+    ['onDidFinishLoadingStyle', () => finishStyleLoading()],
+    ['onDidFinishLoadingMap', () => finishMapLoading()],
+  ])('si llega %s antes de 8 s, no hay fondo liso', async (_name, finish) => {
+    jest.useFakeTimers();
+    await render(<JerezMap height={200} />);
+    await act(async () => finish());
+    await act(async () => {
+      jest.advanceTimersByTime(20000);
+    });
+    expect(getRecorded().map.mapStyle).toBe(MAP_STYLE_URL);
+    expect(screen.queryByText('Mapa no disponible ahora mismo')).toBeNull();
+  });
+
+  it('Reintentar vuelve al estilo remoto y reinicia el temporizador', async () => {
+    jest.useFakeTimers();
     await render(<JerezMap height={200} />);
     await act(async () => failMapLoading());
-    expect(screen.getByText('Mapa no disponible sin conexión')).toBeTruthy();
-    expect(screen.queryByTestId('map-view')).toBeNull();
+    expect(typeof getRecorded().map.mapStyle).toBe('object');
+    await fireEvent.press(screen.getByText('Reintentar'));
+    expect(getRecorded().map.mapStyle).toBe(MAP_STYLE_URL);
+    expect(screen.queryByText('Mapa no disponible ahora mismo')).toBeNull();
+    // El temporizador de 8 s vuelve a correr.
+    await act(async () => {
+      jest.advanceTimersByTime(8000);
+    });
+    expect(typeof getRecorded().map.mapStyle).toBe('object');
+  });
+
+  it('al volver la app a primer plano con el mapa en fondo liso, reintenta', async () => {
+    let listener: (state: string) => void = () => {};
+    const remove = jest.fn();
+    jest.spyOn(AppState, 'addEventListener').mockImplementation(((_type: string, fn: (state: string) => void) => {
+      listener = fn;
+      return { remove };
+    }) as never);
+    await render(<JerezMap height={200} />);
+    await act(async () => failMapLoading());
+    expect(typeof getRecorded().map.mapStyle).toBe('object');
+    await act(async () => listener('active'));
+    expect(getRecorded().map.mapStyle).toBe(MAP_STYLE_URL);
+  });
+
+  it('al desmontar no quedan temporizadores', async () => {
+    jest.useFakeTimers();
+    const set = jest.spyOn(globalThis, 'setTimeout');
+    const clear = jest.spyOn(globalThis, 'clearTimeout');
+    const view = await render(<JerezMap height={200} />);
+    // Buscamos el reloj de 8 s del mapa entre los temporizadores creados.
+    const index = set.mock.calls.findIndex(([, ms]) => ms === 8000);
+    expect(index).toBeGreaterThanOrEqual(0);
+    const timerId = set.mock.results[index].value;
+    await view.unmount();
+    expect(clear).toHaveBeenCalledWith(timerId);
+  });
+
+  it('avisa del estado: loading, ready, fallback', async () => {
+    const onStatusChange = jest.fn();
+    await render(<JerezMap height={200} onStatusChange={onStatusChange} />);
+    expect(onStatusChange).toHaveBeenLastCalledWith('loading');
+    await act(async () => finishStyleLoading());
+    expect(onStatusChange).toHaveBeenLastCalledWith('ready');
+  });
+
+  it('avisa fallback cuando el mapa falla', async () => {
+    const onStatusChange = jest.fn();
+    await render(<JerezMap height={200} onStatusChange={onStatusChange} />);
+    await act(async () => failMapLoading());
+    expect(onStatusChange).toHaveBeenLastCalledWith('fallback');
+  });
+
+  it('si Map lanza un error al pintarse, avisa unavailable y muestra el recuadro', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    breakMapRendering();
+    const onStatusChange = jest.fn();
+    await render(<JerezMap height={200} onStatusChange={onStatusChange} />);
+    expect(screen.getByText('Mapa no disponible ahora mismo')).toBeTruthy();
+    expect(onStatusChange).toHaveBeenLastCalledWith('unavailable');
   });
 
   it('al tocar una parada llama a onStopPress con su código', async () => {
@@ -56,6 +166,11 @@ describe('JerezMap', () => {
     await render(<JerezMap height={200} stops={[stop]} onStopPress={onStopPress} />);
     fireEvent.press(screen.getByTestId('press-stops'));
     expect(onStopPress).toHaveBeenCalledWith('42');
+  });
+
+  it('la fuente de paradas amplía la zona de toque 16 px por cada lado', async () => {
+    await render(<JerezMap height={200} stops={[stop]} />);
+    expect(getRecorded().sources.stops.hitbox).toEqual({ top: 16, right: 16, bottom: 16, left: 16 });
   });
 
   it('sin datos de vista, la cámara abarca toda la zona de Jerez', async () => {

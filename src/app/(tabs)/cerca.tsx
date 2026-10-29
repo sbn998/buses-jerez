@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { JerezMap } from '@/components/map/JerezMap';
+import { JerezMap, type MapStatus } from '@/components/map/JerezMap';
 import { LocationState } from '@/components/nearby/LocationState';
 import { NearbyStopCard } from '@/components/nearby/NearbyStopCard';
 import { FavoritesList } from '@/components/schedule/FavoritesList';
@@ -17,6 +17,7 @@ import { useLocation } from '@/hooks/use-location';
 import { useNow } from '@/hooks/use-now';
 import { useTheme } from '@/hooks/use-theme';
 import { nearbyStops } from '@/lib/nearby';
+import { boundsOf } from '@/lib/mapLayers';
 import { openSchedule } from '@/lib/navigation';
 import { useFavorites } from '@/stores/favorites';
 
@@ -38,6 +39,21 @@ export default function Cerca() {
   const nearby = useMemo(() => (coords ? nearbyStops(data, coords) : null), [data, coords]);
   const mapStops = useMemo(() => nearby?.items.map((i) => i.stop), [nearby]);
   const hasApproximate = mapStops?.some((s) => s.approximate) ?? false;
+  // Estado del mapa: si solo hay recuadro de texto ('unavailable') no se dibuja ningún círculo, así que sobra la leyenda.
+  const [mapStatus, setMapStatus] = useState<MapStatus>('loading');
+
+  // Vista del mapa: una caja que abarca al usuario y las paradas mostradas.
+  // Si todo cae en el mismo punto (la caja no tendría tamaño), centramos en el usuario con zoom 15.
+  const mapView = useMemo(() => {
+    if (!coords) return null;
+    const points: [number, number][] = [
+      ...(mapStops ?? []).map((s): [number, number] => [s.lon, s.lat]),
+      [coords.lon, coords.lat],
+    ];
+    const box = points.length >= 2 ? boundsOf(points) : null;
+    if (box && (box[0] !== box[2] || box[1] !== box[3])) return { bounds: box };
+    return { center: [coords.lon, coords.lat] as [number, number], zoom: 15 };
+  }, [coords, mapStops]);
 
   // Para llevar la lista hasta una parada tocada en el mapa: guardamos dónde está cada tarjeta.
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
@@ -67,13 +83,13 @@ export default function Cerca() {
           <View style={styles.mapBox}>
             <JerezMap
               height={MAP_HEIGHT}
-              center={[coords.lon, coords.lat]}
-              zoom={16}
+              {...mapView}
               stops={mapStops}
               user={coords}
               onStopPress={openFromMap}
+              onStatusChange={setMapStatus}
             />
-            {hasApproximate ? (
+            {hasApproximate && mapStatus !== 'unavailable' ? (
               <ThemedText type="small" themeColor="textSecondary">
                 {t('nearby.approxLegend')}
               </ThemedText>

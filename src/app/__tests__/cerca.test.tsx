@@ -64,7 +64,7 @@ function renderScreen() {
 }
 
 // Ayudas que solo existen en el mock de MapLibre (carpeta __mocks__ de la raíz).
-const { failMapLoading, resetMock } = jest.requireMock('@maplibre/maplibre-react-native');
+const { failMapLoading, breakMapRendering, getRecorded, resetMock } = jest.requireMock('@maplibre/maplibre-react-native');
 
 beforeAll(() => {
   initI18n('es');
@@ -228,12 +228,47 @@ describe('pantalla Cerca de mí', () => {
       expect(screen.getByText('hacia Destino 3')).toBeTruthy();
     });
 
-    it('map error: enseña el recuadro de sin conexión y la lista sigue visible', async () => {
+    it('map error: el mapa sigue con fondo liso y aviso, y la lista sigue visible', async () => {
       await renderScreen();
       await act(async () => failMapLoading());
-      expect(screen.getByText('Mapa no disponible sin conexión')).toBeTruthy();
-      expect(screen.queryByTestId('map-view')).toBeNull();
+      expect(screen.getByText('Mapa no disponible ahora mismo')).toBeTruthy();
+      expect(screen.getByTestId('map-view')).toBeTruthy();
       expect(screen.getByText('Plaza Cercana')).toBeTruthy();
+      // Con fondo liso las paradas se siguen dibujando, así que la leyenda se mantiene.
+      expect(screen.getByText('○ ubicación aproximada')).toBeTruthy();
+    });
+
+    it('sin motor de mapas (solo el recuadro de texto) no sale la leyenda de ubicación aproximada', async () => {
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+      jest.spyOn(console, 'warn').mockImplementation(() => {});
+      breakMapRendering();
+      await renderScreen();
+      expect(screen.getByText('Mapa no disponible ahora mismo')).toBeTruthy();
+      expect(screen.queryByText('○ ubicación aproximada')).toBeNull();
+      expect(screen.getByText('Plaza Cercana')).toBeTruthy();
+      jest.restoreAllMocks();
+    });
+
+    it('encuadra el mapa con la posición del usuario y las paradas mostradas', async () => {
+      await renderScreen();
+      // Usuario en (0, 0); paradas A (lat 0.001) y B (lat 0.003), ambas dentro de 500 m.
+      const view = getRecorded().camera.initialViewState;
+      expect(view.bounds).toEqual([0, 0, 0, 0.003]);
+      expect(view.center).toBeUndefined();
+    });
+
+    it('si el usuario y la única parada coinciden, centra en el usuario con zoom 15', async () => {
+      mockLocation = { status: 'ready', coords: { lat: 0.001, lon: 0 }, retry: jest.fn() };
+      const only = { ...data, lines: [makeLine('1', ['A'], ['10:30'])], stops: { A: data.stops.A } };
+      await render(
+        <DataProvider value={{ data: only, source: 'bundled', checkedAt: null }}>
+          <Cerca />
+        </DataProvider>,
+      );
+      const view = getRecorded().camera.initialViewState;
+      expect(view.bounds).toBeUndefined();
+      expect(view.center).toEqual([0, 0.001]);
+      expect(view.zoom).toBe(15);
     });
 
     it('la leyenda de ubicación aproximada sale solo si alguna parada lo es', async () => {

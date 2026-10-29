@@ -1,12 +1,12 @@
 // Detalle de una línea: mapa con su recorrido y paradas y, por cada sentido, sus paradas numeradas en orden.
 // Al tocar una parada se abre Horarios con esa línea y parada.
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, SectionList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { JerezMap } from '@/components/map/JerezMap';
+import { JerezMap, type MapStatus } from '@/components/map/JerezMap';
 import { StopRow } from '@/components/lines/StopRow';
 import { ThemedText } from '@/components/themed-text';
 import { BottomTabInset, Spacing } from '@/constants/theme';
@@ -42,6 +42,8 @@ export default function LineaDetalle() {
   );
   // La leyenda solo aparece si alguna parada tiene la ubicación aproximada (círculo hueco en el mapa).
   const hasApproximate = mapStops.some((s) => s.approximate);
+  // Si solo hay recuadro de texto ('unavailable') no se dibuja ningún círculo, así que sobra la leyenda.
+  const [mapStatus, setMapStatus] = useState<MapStatus>('loading');
   const mapShapes = useMemo(() => (line ? { shapes: line.shapes, colour: line.colour } : undefined), [line]);
   const mapBounds = useMemo(
     () =>
@@ -85,9 +87,10 @@ export default function LineaDetalle() {
                 stops={mapStops}
                 shapes={mapShapes}
                 onStopPress={(code) => openSchedule(router, line.id, code)}
+                onStatusChange={setMapStatus}
               />
             </View>
-            {hasApproximate ? (
+            {hasApproximate && mapStatus !== 'unavailable' ? (
               <ThemedText type="small" themeColor="textSecondary" style={styles.legend}>
                 {t('nearby.approxLegend')}
               </ThemedText>
