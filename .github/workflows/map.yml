@@ -82,6 +82,11 @@ jobs:
         run: |
           curl -fsSL -o noto-sans.zip https://github.com/openmaptiles/fonts/releases/download/v2.0/noto-sans.zip
           unzip -q noto-sans.zip "Noto Sans Regular/*" "Noto Sans Bold/*" -d fonts-src
+          # Comprobamos que las dos tipografías están de verdad antes de empaquetarlas.
+          if ! { test -f "fonts-src/Noto Sans Regular/0-255.pbf" && test -f "fonts-src/Noto Sans Bold/0-255.pbf"; }; then
+            echo "::error::Faltan las tipografías Noto Sans Regular o Bold (0-255.pbf) en el zip descargado"
+            exit 1
+          fi
           (cd fonts-src && zip -qr ../fonts.zip .)
 
       - name: Subir al Release "mapa"
