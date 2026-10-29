@@ -14,7 +14,9 @@ type MapLibre = typeof import('@maplibre/maplibre-react-native');
 function loadMapLibre(): MapLibre | null {
   try {
     return require('@maplibre/maplibre-react-native') as MapLibre;
-  } catch {
+  } catch (error) {
+    // Solo en desarrollo: deja el motivo en la consola para no esconder fallos reales.
+    if (__DEV__) console.warn('JerezMap: no se pudo cargar MapLibre', error);
     return null;
   }
 }
@@ -24,6 +26,10 @@ class MapErrorBoundary extends Component<{ fallback: ReactNode; children: ReactN
   state = { failed: false };
   static getDerivedStateFromError() {
     return { failed: true };
+  }
+  // Solo en desarrollo, deja el error en la consola para poder investigarlo.
+  componentDidCatch(error: Error) {
+    if (__DEV__) console.warn('JerezMap: error al pintar el mapa', error);
   }
   render() {
     return this.state.failed ? this.props.fallback : this.props.children;
