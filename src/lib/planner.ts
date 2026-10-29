@@ -167,25 +167,28 @@ export function planTrips(
     return best;
   }
 
+  // Memoria de ridesInOrder.
+  const ridesCache = new Map<number, Ride[]>();
+
   /**
-   * Como bestRide, pero eligiendo el viaje que llega más tarde sin pasar de `maxArrive`.
-   * Sirve para el primer bus de un transbordo cuando el más temprano esperaría demasiado.
+   * Todos los viajes posibles entre dos posiciones de una línea a partir de `minDepart`,
+   * de la llegada más temprana a la más tardía (a igual llegada, antes el que sale más tarde).
+   * Sirve para probar, en un transbordo, otros buses de A si el primero no conecta bien.
    */
-  function lastRideBefore(
-    lineIdx: number,
-    i: number,
-    j: number,
-    minDepart: number,
-    maxArrive: number,
-  ): Ride | null {
-    let best: Ride | null = null;
+  function ridesInOrder(lineIdx: number, i: number, j: number, minDepart: number): Ride[] {
+    const key = ((lineIdx * 1024 + i) * 1024 + j) * 4096 + minDepart;
+    const guardado = ridesCache.get(key);
+    if (guardado) return guardado;
+    const lista: Ride[] = [];
     rowsByLine[lineIdx].forEach((row, r) => {
       const dep = row[i];
       const arr = row[j];
-      if (dep === null || arr === null || dep < minDepart || arr < dep || arr > maxArrive) return;
-      if (!best || arr > best.arr || (arr === best.arr && dep > best.dep)) best = { row: r, dep, arr };
+      if (dep === null || arr === null || dep < minDepart || arr < dep) return;
+      lista.push({ row: r, dep, arr });
     });
-    return best;
+    lista.sort((x, y) => x.arr - y.arr || y.dep - x.dep);
+    ridesCache.set(key, lista);
+    return lista;
   }
 
   /** Construye un tramo en bus a partir de un viaje elegido. */
@@ -241,7 +244,7 @@ export function planTrips(
   }
 
   // Una opción por combinación de líneas: nos quedamos con la que llega antes.
-  // La clave es numérica (línea A * 100 + línea B + 1; 0 en B si no hay transbordo) para ir rápido.
+  // La clave es numérica (línea A * 1000 + línea B, ambas +1; B vale 0 si no hay transbordo) para ir rápido.
   const best = new Map<number, RouteOption>();
   const comboKey = (lineA: number, lineB: number) => (lineA + 1) * 1000 + (lineB + 1);
   /** ¿Mejoraría una opción con esta llegada y estos metros a la que ya tenemos para la combinación? */
@@ -289,8 +292,9 @@ export function planTrips(
       // Un transbordo: bajar en `k` y subir a otra línea en la misma parada o en una cercana.
       for (let k = va.index + 1; k < lineA.stopCodes.length; k++) {
         if (!data.stops[lineA.stopCodes[k]]) continue;
-        const rideA = bestRide(va.lineIdx, va.index, k, minBoard);
-        if (!rideA) continue;
+        const buses = ridesInOrder(va.lineIdx, va.index, k, minBoard);
+        if (buses.length === 0) continue;
+        const rideA = buses[0]; // el primero: da la cota inferior de la hora de llegada
 
         for (const t of transferStops(lineA.stopCodes[k])) {
           const walkMin = t.walk ? t.walk.minutes : 0;
@@ -309,25 +313,23 @@ export function planTrips(
               const conocida = best.get(key);
               if (conocida && conocida.arrivalMinutes < minDep + dst.walk.minutes) continue;
 
-              const rideB = bestRide(vb.lineIdx, vb.index, jd, minDep);
-              if (!rideB) continue;
-              // Si con el primer bus de A habría que esperar demasiado, se busca otro bus de A
-              // que llegue más tarde pero justo a tiempo para ese mismo bus de B.
-              let useA = rideA;
-              let wait = rideB.dep - ready;
-              if (wait > o.maxTransferWaitMinutes) {
-                const tarde = lastRideBefore(
-                  va.lineIdx,
-                  va.index,
-                  k,
-                  minBoard,
-                  rideB.dep - walkMin - o.minTransferMinutes,
-                );
-                if (!tarde) continue;
-                useA = tarde;
-                wait = rideB.dep - (tarde.arr + walkMin);
-                if (wait > o.maxTransferWaitMinutes) continue;
+              // Se prueban los buses de A de más temprano a más tarde: el primero que conecta
+              // con un B con espera aceptable da la llegada más temprana.
+              let useA: Ride | null = null;
+              let rideB: Ride | null = null;
+              let wait = 0;
+              for (const candA of buses) {
+                const listo = candA.arr + walkMin;
+                const rb = bestRide(vb.lineIdx, vb.index, jd, listo + o.minTransferMinutes);
+                if (!rb) break; // los buses de A siguientes llegan aún más tarde: tampoco hay B
+                if (rb.dep - listo <= o.maxTransferWaitMinutes) {
+                  useA = candA;
+                  rideB = rb;
+                  wait = rb.dep - listo;
+                  break;
+                }
               }
+              if (!useA || !rideB) continue;
 
               const arrivalMinutes = rideB.arr + dst.walk.minutes;
               const walkMeters = org.walk.meters + (t.walk ? t.walk.meters : 0) + dst.walk.meters;

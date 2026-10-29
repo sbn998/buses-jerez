@@ -234,6 +234,25 @@ describe('planTrips', () => {
     expect(res[0].legs[1].departure).toBe('11:10');
   });
 
+  it('tries later B buses when the first connection waits too long', () => {
+    const data = mundo();
+    poner(data, '1', 'lab', [
+      ['10:05', '10:20', '10:35'],
+      ['11:15', '11:30', '11:45'],
+    ]);
+    poner(data, '3', 'lab', [
+      ['11:10', '11:25', '11:40'],
+      ['11:35', '11:50', '12:05'],
+    ]);
+    // Con el bus de A de las 10:20 la B de las 11:10 espera 50 min; con el de las 11:30,
+    // la de las 11:10 ya se ha ido y la de las 11:35 espera solo 5.
+    const res = planTrips(data, pt(0, 0), pt(2000, -6000), miercoles(10, 0));
+    expect(res).toHaveLength(1);
+    expect(res[0].legs[0].arrival).toBe('11:30');
+    expect(res[0].legs[1].departure).toBe('11:35');
+    expect(res[0].transferWaitMinutes).toBe(5);
+  });
+
   // Mundo con un directo lento (línea 1) y dos transbordos rápidos hacia P3.
   function mundoDirectoLento(): Dataset {
     const data = mundo();
