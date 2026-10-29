@@ -71,8 +71,8 @@ Esta prueba necesita la versión de prueba (Parte 5), porque la app de desarroll
 33. **Activa el modo avión.** (1 min)
 34. **Cierra la app por completo.** (1 min)
 35. **Vuelve a abrir la app.** No arranques ningún servidor. (1 min)
-36. **Cerca de mí sin conexión:** debe salir el recuadro "Mapa no disponible sin conexión" en lugar del mapa, y la lista de paradas debe seguir funcionando. (2 min)
-37. **Detalle de una línea sin conexión:** debe salir el mismo recuadro, y la lista de paradas debe seguir funcionando. Si falla, avisa del fallo tal cual. (2 min)
+36. **Cerca de mí sin conexión:** debe verse o bien el mapa con lo que haya guardado de antes, o bien un fondo liso con tu posición y las paradas, y el aviso "Mapa no disponible ahora mismo" con el botón "Reintentar". Puede tardar unos 8 segundos en aparecer el aviso. La lista de paradas debe seguir funcionando. (2 min)
+37. **Detalle de una línea sin conexión:** debe verse lo mismo (el mapa guardado, o el fondo liso con las paradas y el aviso), y la lista de paradas debe seguir funcionando. La app nunca debe quedarse colgada ni cerrarse. Si falla, avisa del fallo tal cual. (2 min)
 38. **Restaura la app de desarrollo:** instala el APK de desarrollo nuevo, con el enlace del paso 23 (o en https://expo.dev, tu proyecto, Builds, la compilación de tipo development). (5 min)
 
 ## Si algo falla
