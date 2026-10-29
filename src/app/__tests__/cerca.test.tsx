@@ -133,7 +133,7 @@ describe('pantalla Cerca de mí', () => {
     await renderScreen();
     expect(screen.getByText('Tu ubicación es aproximada (±500 m). Las distancias pueden no ser exactas.')).toBeTruthy();
     expect(screen.getByText('111 m')).toBeTruthy();
-    expect(screen.queryByText(/d+ m · d+ min/)).toBeNull();
+    expect(screen.queryByText(/\d+ m · \d+ min/)).toBeNull();
   });
 
   it('con una precisión de 20 m no hay aviso y se enseñan los minutos', async () => {
