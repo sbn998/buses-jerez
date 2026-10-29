@@ -59,6 +59,34 @@ describe('pantalla Horarios', () => {
     expect(useFavorites.getState().items).toContainEqual({ lineId: '1', stopCode: '343' });
   });
 
+  it('en una línea de un solo sentido no escribe "hacia …"', async () => {
+    mockParams = { line: '1', stop: '343' };
+    await renderScreen();
+    expect(screen.queryByText(/hacia/i)).toBeNull();
+  });
+
+  it('en una línea con dos sentidos sí escribe "hacia …"', async () => {
+    mockParams = { line: '1', stop: '343' };
+    const dos: Dataset = {
+      ...data,
+      lines: [
+        {
+          ...data.lines[0],
+          directions: [
+            { headsign: 'San Telmo', stopCodes: ['343'] },
+            { headsign: 'Alameda', stopCodes: ['344'] },
+          ],
+        },
+      ],
+    };
+    await render(
+      <DataProvider value={{ data: dos, source: 'bundled', checkedAt: null }}>
+        <Horarios />
+      </DataProvider>,
+    );
+    expect(screen.getAllByText('Hacia San Telmo').length).toBeGreaterThan(0);
+  });
+
   it('sin parámetros no preselecciona nada: muestra favoritos vacíos y el selector de línea', async () => {
     mockParams = {};
     await renderScreen();

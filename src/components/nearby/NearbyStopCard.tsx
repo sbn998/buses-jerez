@@ -10,7 +10,7 @@ import { useData } from '@/data/DataProvider';
 import { useTheme } from '@/hooks/use-theme';
 import { formatMinutes } from '@/lib/format';
 import type { NearbyStop } from '@/lib/nearby';
-import { dayTypeFor, headsignFor, nextDepartures } from '@/lib/schedule';
+import { dayTypeFor, directionLabel, nextDepartures } from '@/lib/schedule';
 
 interface Props {
   item: NearbyStop;
@@ -62,7 +62,7 @@ export function NearbyStopCard({ item, open, now, onToggle, onSelectLine }: Prop
           {item.lines.map((line) => {
             const times = line.timesByStop[stop.code]?.[dayType] ?? [];
             const next = nextDepartures(times, now, 1)[0];
-            const headsign = headsignFor(line, stop.code);
+            const headsign = directionLabel(line, stop.code);
             // Dos casos distintos: no hay horas hoy, o las hay pero ya pasaron.
             const status = next
               ? `${next.time} · ${formatMinutes(next.minutesUntil, t)}`

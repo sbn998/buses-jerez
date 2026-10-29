@@ -27,7 +27,8 @@ export function StopPicker({ line, stops, onSelect }: Props) {
     <ScrollView style={[styles.list, { backgroundColor: theme.backgroundElement }]} nestedScrollEnabled>
       {groups.map((group, index) => (
         <View key={`${group.headsign}-${index}`}>
-          {group.headsign ? (
+          {/* Con un solo sentido no se escribe "Hacia …". */}
+          {group.headsign && line.directions.length > 1 ? (
             <ThemedText type="smallBold" themeColor="textSecondary" style={styles.header}>
               {t('schedule.towards', { headsign: group.headsign })}
             </ThemedText>

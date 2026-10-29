@@ -17,14 +17,20 @@ jest.mock('@/hooks/use-location', () => ({ useLocation: () => mockLocation }));
 // Miércoles 28 de octubre de 2026, 10:00 (día laborable).
 jest.mock('@/hooks/use-now', () => ({ useNow: () => new Date(2026, 9, 28, 10, 0, 0) }));
 
-function makeLine(id: string, stopCodes: string[], lab: string[]): Line {
+function makeLine(id: string, stopCodes: string[], lab: string[], oneDirection = false): Line {
   const times = Object.fromEntries(stopCodes.map((c) => [c, { lab, sab: [], fes: [] }]));
   return {
     id,
     name: `Línea ${id}`,
     colour: '#FFDE4D',
     stopCodes,
-    directions: [{ headsign: `Destino ${id}`, stopCodes }],
+    // Con dos sentidos se enseña "hacia …"; con uno solo no.
+    directions: oneDirection
+      ? [{ headsign: `Destino ${id}`, stopCodes }]
+      : [
+          { headsign: `Destino ${id}`, stopCodes },
+          { headsign: `Vuelta ${id}`, stopCodes: [] },
+        ],
     shapes: [],
     timesByStop: times,
     trips: { lab: [], sab: [], fes: [] },
@@ -44,6 +50,7 @@ const data: Dataset = {
     makeLine('1', ['A'], ['10:30']),
     makeLine('2', ['A'], []), // sin horas hoy: "Sin servicio hoy"
     makeLine('3', ['B'], ['09:00']), // tiene horas pero ya pasaron
+    makeLine('4', ['A'], ['11:00'], true), // un solo sentido: sin "hacia …"
   ],
 };
 
@@ -79,6 +86,12 @@ describe('pantalla Cerca de mí', () => {
     expect(arg.params.line).toBe('1');
     expect(arg.params.stop).toBe('A');
     expect(typeof arg.params.nonce).toBe('string');
+  });
+
+  it('una línea de un solo sentido no escribe "hacia …"', async () => {
+    await renderScreen();
+    expect(screen.getByText('11:00 · en 60 min')).toBeTruthy();
+    expect(screen.queryByText('hacia Destino 4')).toBeNull();
   });
 
   it('una línea sin horas hoy sigue visible y dice "Sin servicio hoy"', async () => {

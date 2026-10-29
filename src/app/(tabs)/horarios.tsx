@@ -20,7 +20,7 @@ import { useData } from '@/data/DataProvider';
 import { useNow } from '@/hooks/use-now';
 import { useTheme } from '@/hooks/use-theme';
 import { findLineStop } from '@/lib/lineStop';
-import { calendarDays, headsignFor, nextDepartures, toDateKey } from '@/lib/schedule';
+import { calendarDays, directionLabel, nextDepartures, toDateKey } from '@/lib/schedule';
 import { useFavorites } from '@/stores/favorites';
 
 export default function Horarios() {
@@ -100,7 +100,7 @@ export default function Horarios() {
     const favorite = { lineId: line.id, stopCode: stop.code };
     const isFavorite = favorites.some((f) => f.lineId === favorite.lineId && f.stopCode === favorite.stopCode);
     const times = line.timesByStop[stop.code]?.[selectedDay.dayType] ?? [];
-    const headsign = headsignFor(line, stop.code);
+    const headsign = directionLabel(line, stop.code);
     content = (
       <>
         <View style={styles.row}>

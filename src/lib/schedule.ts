@@ -56,6 +56,15 @@ export function headsignFor(line: Line, stopCode: string): string | null {
   return direction ? direction.headsign : null;
 }
 
+/**
+ * Texto de destino para enseñar "hacia …" en pantalla. Solo tiene sentido si la línea tiene
+ * dos sentidos; en una línea de un solo sentido (circular) no se escribe nada (devuelve null).
+ */
+export function directionLabel(line: Line, stopCode: string): string | null {
+  if (line.directions.length < 2) return null;
+  return headsignFor(line, stopCode);
+}
+
 /** `count` días seguidos desde `start`, cada uno con su tipo de día y festivo. */
 export function calendarDays(
   start: Date,

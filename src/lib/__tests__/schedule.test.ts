@@ -4,6 +4,7 @@ import type { Line } from '@/data/schema';
 import {
   calendarDays,
   dayTypeFor,
+  directionLabel,
   headsignFor,
   holidayFor,
   nextDepartures,
@@ -54,6 +55,24 @@ describe('headsignFor', () => {
     } as unknown as Line;
     expect(headsignFor(l, '302')).toBe('Plaza Esteve');
     expect(headsignFor(l, '999')).toBeNull();
+  });
+});
+
+describe('directionLabel', () => {
+  it('con dos sentidos devuelve el destino de la parada', () => {
+    const l = {
+      directions: [
+        { headsign: 'San Telmo', stopCodes: ['343'] },
+        { headsign: 'Plaza Esteve', stopCodes: ['302'] },
+      ],
+    } as unknown as Line;
+    expect(directionLabel(l, '302')).toBe('Plaza Esteve');
+    expect(directionLabel(l, '999')).toBeNull();
+  });
+  it('con un solo sentido (o ninguno) no hay "hacia": devuelve null', () => {
+    const una = { directions: [{ headsign: 'Circular', stopCodes: ['1'] }] } as unknown as Line;
+    expect(directionLabel(una, '1')).toBeNull();
+    expect(directionLabel({ directions: [] } as unknown as Line, '1')).toBeNull();
   });
 });
 
