@@ -35,6 +35,12 @@
         }
       ],
       "expo-localization",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Para mostrarte las paradas más cercanas"
+        }
+      ],
       "expo-dev-client"
     ],
     "experiments": {
