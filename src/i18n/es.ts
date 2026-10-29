@@ -98,7 +98,12 @@ const es = {
     data: 'Datos',
     source: 'Datos oficiales de Comujesa',
     offlineMap: 'Mapa sin conexión',
-    mapSoon: 'Disponible pronto',
+    mapDownload: 'Descargar mapa de Jerez (≈ {{mb}} MB)',
+    mapDownloading: 'Descargando… {{done}} de {{total}}',
+    mapDownloaded: 'Mapa descargado · {{mb}} MB',
+    mapDelete: 'Borrar',
+    mapError: 'No se pudo descargar.',
+    mapRetry: 'Reintentar',
   },
 };
 

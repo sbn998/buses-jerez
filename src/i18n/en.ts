@@ -103,7 +103,12 @@ const en: Textos = {
     data: 'Data',
     source: 'Official data from Comujesa',
     offlineMap: 'Offline map',
-    mapSoon: 'Coming soon',
+    mapDownload: 'Download Jerez map (≈ {{mb}} MB)',
+    mapDownloading: 'Downloading… {{done}} of {{total}}',
+    mapDownloaded: 'Map downloaded · {{mb}} MB',
+    mapDelete: 'Delete',
+    mapError: 'Download failed.',
+    mapRetry: 'Retry',
   },
 };
 

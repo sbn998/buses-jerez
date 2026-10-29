@@ -1,8 +1,9 @@
-// Pantalla Opciones: idioma, de dónde salen los datos y (pronto) el mapa sin conexión.
+// Pantalla Opciones: idioma, de dónde salen los datos y el mapa sin conexión.
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet } from 'react-native';
 
 import { LanguagePicker } from '@/components/options/LanguagePicker';
+import { OfflineMapSection } from '@/components/options/OfflineMapSection';
 import { DataFreshness } from '@/components/schedule/DataFreshness';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -24,7 +25,7 @@ export default function Opciones() {
         <ThemedText type="smallBold" style={styles.section}>
           {t('options.offlineMap')}
         </ThemedText>
-        <ThemedText themeColor="textSecondary">{t('options.mapSoon')}</ThemedText>
+        <OfflineMapSection />
       </ScrollView>
     </ThemedView>
   );

@@ -42,6 +42,6 @@ describe('pantalla Opciones', () => {
     await renderScreen();
     expect(screen.getByText(/copia incluida en la app/)).toBeTruthy();
     expect(screen.getByText('Datos oficiales de Comujesa')).toBeTruthy();
-    expect(screen.getByText('Disponible pronto')).toBeTruthy();
+    expect(screen.getByText('Descargar mapa de Jerez (≈ 4 MB)')).toBeTruthy();
   });
 });

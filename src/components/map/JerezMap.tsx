@@ -8,10 +8,12 @@ import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { Stop } from '@/data/schema';
 import { JEREZ_BOUNDS, MAP_STYLE_URL, shapesToGeoJSON, stopsToGeoJSON } from '@/lib/mapLayers';
+import { readLocalStyle, useOfflineMap } from '@/lib/offlineMap';
 
 import { MapPlaceholder } from './MapPlaceholder';
 
 type MapLibre = typeof import('@maplibre/maplibre-react-native');
+type MapStyleObject = Exclude<import('@maplibre/maplibre-react-native').MapProps['mapStyle'], string | undefined>;
 
 // Estado del mapa que se avisa a la pantalla:
 // loading = cargando, ready = cargado, fallback = fondo liso con paradas, unavailable = solo el recuadro de texto.
@@ -114,6 +116,27 @@ function MapContent({
   const { Map, Camera, GeoJSONSource, Layer } = maplibre;
   const { t } = useTranslation();
 
+  // Mapa descargado: leemos del disco el estilo local. Mientras se lee (o si falla) se usa el remoto.
+  const downloaded = useOfflineMap((s) => s.status.downloaded);
+  const refreshOffline = useOfflineMap((s) => s.refresh);
+  const [localStyle, setLocalStyle] = useState<MapStyleObject | null>(null);
+  useEffect(() => {
+    void refreshOffline();
+  }, [refreshOffline]);
+  useEffect(() => {
+    if (!downloaded) {
+      setLocalStyle(null);
+      return;
+    }
+    let cancelled = false;
+    readLocalStyle().then((style) => {
+      if (!cancelled) setLocalStyle(style as MapStyleObject | null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [downloaded]);
+
   // 'loading' = esperando al mapa; 'ready' = cargado; 'fallback' = fondo liso porque no ha cargado.
   const [phase, setPhase] = useState<DrawnStatus>('loading');
   useEffect(() => {
@@ -165,7 +188,7 @@ function MapContent({
     <View style={{ height }}>
       <Map
         style={styles.fill}
-        mapStyle={phase === 'fallback' ? FALLBACK_STYLE : MAP_STYLE_URL}
+        mapStyle={phase === 'fallback' ? FALLBACK_STYLE : (localStyle ?? MAP_STYLE_URL)}
         attribution={false}
         logo={false}
         onDidFailLoadingMap={handleFailed}

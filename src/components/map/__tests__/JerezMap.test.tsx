@@ -1,10 +1,12 @@
 // Pruebas de JerezMap: pinta el mapa, avisa de las paradas tocadas y no bloquea si el mapa falla.
 import { AppState } from 'react-native';
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import type { Stop } from '@/data/schema';
 import { initI18n } from '@/i18n';
 import { JEREZ_BOUNDS, MAP_STYLE_URL } from '@/lib/mapLayers';
+import { deleteOfflineMap, downloadOfflineMap, setOfflineFs, useOfflineMap } from '@/lib/offlineMap';
+import { createFakeFs } from '@/lib/testing/fakeOfflineFs';
 
 import { JerezMap } from '../JerezMap';
 
@@ -20,6 +22,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  setOfflineFs(null);
+  useOfflineMap.setState({ status: { downloaded: false, bytes: 0 } });
   jest.useRealTimers();
   jest.restoreAllMocks();
 });
@@ -205,5 +209,40 @@ describe('JerezMap', () => {
   it('dibuja al usuario como círculo azul solo si hay posición', async () => {
     await render(<JerezMap height={200} user={{ lat: 36.68, lon: -6.13 }} />);
     expect(getRecorded().layers['user-circle'].paint['circle-color']).toBe('#2563eb');
+  });
+});
+
+describe('JerezMap con el mapa sin conexión', () => {
+  it('delete switches back to remote: con el mapa descargado usa el estilo local y tras borrarlo vuelve al remoto', async () => {
+    setOfflineFs(createFakeFs().fs);
+    await downloadOfflineMap(() => {});
+    await render(<JerezMap height={200} />);
+    await waitFor(() => expect(typeof getRecorded().map.mapStyle).toBe('object'));
+    expect(getRecorded().map.mapStyle.glyphs).toBe('file:///doc/map/fonts/{fontstack}/{range}.pbf');
+    await act(async () => {
+      await deleteOfflineMap();
+    });
+    await waitFor(() => expect(getRecorded().map.mapStyle).toBe(MAP_STYLE_URL));
+  });
+
+  it('si el mapa descargado está corrupto, usa el remoto', async () => {
+    const { fs, files } = createFakeFs();
+    setOfflineFs(fs);
+    await downloadOfflineMap(() => {});
+    files.set('map/style.json', 'esto no es JSON');
+    // El archivo existe pero no se puede interpretar: tamaño distinto => no descargado => remoto.
+    await useOfflineMap.getState().refresh();
+    await render(<JerezMap height={200} />);
+    expect(getRecorded().map.mapStyle).toBe(MAP_STYLE_URL);
+  });
+
+  it('el fondo liso manda sobre el estilo local', async () => {
+    setOfflineFs(createFakeFs().fs);
+    await downloadOfflineMap(() => {});
+    await render(<JerezMap height={200} />);
+    await waitFor(() => expect(typeof getRecorded().map.mapStyle).toBe('object'));
+    await act(async () => failMapLoading());
+    expect(getRecorded().map.mapStyle.layers[0].type).toBe('background');
+    expect(getRecorded().map.mapStyle.glyphs).toBeUndefined();
   });
 });
