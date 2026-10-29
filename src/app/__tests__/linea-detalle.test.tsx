@@ -148,4 +148,15 @@ describe('detalle de línea', () => {
     expect(screen.getByText('Hacia Norte')).toBeTruthy();
     expect(screen.getAllByRole('button')).toHaveLength(6);
   });
+
+  it('con una parada aproximada muestra la leyenda bajo el mapa', async () => {
+    await renderScreen();
+    expect(screen.getByText('○ ubicación aproximada')).toBeTruthy();
+  });
+
+  it('sin paradas aproximadas no muestra la leyenda', async () => {
+    mockParams = { id: '80' };
+    await renderScreen(manyData);
+    expect(screen.queryByText('○ ubicación aproximada')).toBeNull();
+  });
 });
