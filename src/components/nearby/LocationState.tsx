@@ -1,5 +1,5 @@
 // Aviso que se muestra en Cerca de mí mientras no hay posición: pidiendo permiso, permiso
-// denegado o no disponible (botón para volver a intentarlo), permiso bloqueado (botón a los ajustes) o buscando.
+// denegado, no disponible o sin señal GPS (botón para volver a intentarlo), permiso bloqueado (botón a los ajustes) o buscando.
 import { useTranslation } from 'react-i18next';
 import { Linking, Pressable, StyleSheet, View } from 'react-native';
 
@@ -26,7 +26,9 @@ export function LocationState({ status, onRetry }: Props) {
     ? t('nearby.blockedText')
     : status === 'unavailable'
       ? t('nearby.unavailableText')
-      : t('nearby.deniedText');
+      : status === 'nosignal'
+        ? t('nearby.nosignalText')
+        : t('nearby.deniedText');
   const buttonLabel = isBlocked ? t('nearby.openSettings') : t('nearby.allowLocation');
   return (
     <View style={styles.box}>

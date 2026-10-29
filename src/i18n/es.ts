@@ -36,6 +36,10 @@ const es = {
   },
   nearby: {
     stopsWithin: 'Paradas a menos de 500 m',
+    closest: 'Paradas más cercanas',
+    approxLocation: 'Tu ubicación es aproximada (±{{meters}} m). Las distancias pueden no ser exactas.',
+    approxLocationNoMeters: 'Tu ubicación es aproximada. Las distancias pueden no ser exactas.',
+    distanceOnly: '{{meters}} m',
     farWarning: 'No hay paradas a menos de 500 m. Estas son las más cercanas',
     mapSoon: 'El mapa llegará pronto',
     distance: '{{meters}} m · {{minutes}} min',
@@ -46,6 +50,7 @@ const es = {
     waiting: 'Buscando tu posición…',
     deniedText: 'Necesitamos tu ubicación para mostrarte las paradas más cercanas. Solo se usa en tu móvil.',
     unavailableText: "No se puede obtener tu ubicación. Comprueba que la ubicación del móvil está activada.",
+    nosignalText: 'No encontramos señal GPS. Prueba al aire libre o con la ubicación del móvil activada.',
     allowLocation: 'Permitir ubicación',
     blockedText: 'El permiso de ubicación está desactivado. Actívalo en los ajustes del móvil para ver las paradas cercanas.',
     openSettings: 'Abrir ajustes',

@@ -1,5 +1,6 @@
 // Prueba de la pantalla Cerca de mí con datos pequeños, posición y reloj simulados.
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { Linking } from 'react-native';
 
 import { DataProvider } from '@/data/DataProvider';
 import type { Dataset, Line } from '@/data/schema';
@@ -113,6 +114,63 @@ describe('pantalla Cerca de mí', () => {
     mockLocation = { status: 'ready', coords: { lat: 0.1, lon: 0 }, retry: jest.fn() };
     await renderScreen();
     expect(screen.getByText('No hay paradas a menos de 500 m. Estas son las más cercanas')).toBeTruthy();
+  });
+
+  it('el título dice "Paradas a menos de 500 m" si las hay, y "Paradas más cercanas" si no', async () => {
+    const view = await renderScreen();
+    expect(screen.getByText('Paradas a menos de 500 m')).toBeTruthy();
+    expect(screen.queryByText('Paradas más cercanas')).toBeNull();
+    await view.unmount();
+
+    mockLocation = { status: 'ready', coords: { lat: 0.1, lon: 0 }, retry: jest.fn() };
+    await renderScreen();
+    expect(screen.getByText('Paradas más cercanas')).toBeTruthy();
+    expect(screen.queryByText('Paradas a menos de 500 m')).toBeNull();
+  });
+
+  it('con una precisión de 500 m avisa de que es aproximada y no enseña minutos andando', async () => {
+    mockLocation = { status: 'ready', coords: { lat: 0, lon: 0 }, accuracy: 500, coarse: false, retry: jest.fn() };
+    await renderScreen();
+    expect(screen.getByText('Tu ubicación es aproximada (±500 m). Las distancias pueden no ser exactas.')).toBeTruthy();
+    expect(screen.getByText('111 m')).toBeTruthy();
+    expect(screen.queryByText(/d+ m · d+ min/)).toBeNull();
+  });
+
+  it('con una precisión de 20 m no hay aviso y se enseñan los minutos', async () => {
+    mockLocation = { status: 'ready', coords: { lat: 0, lon: 0 }, accuracy: 20, coarse: false, retry: jest.fn() };
+    await renderScreen();
+    expect(screen.queryByText(/Tu ubicación es aproximada/)).toBeNull();
+    expect(screen.getByText('111 m · 2 min')).toBeTruthy();
+  });
+
+  it('con permiso de ubicación aproximada (coarse) avisa aunque no se conozca la precisión', async () => {
+    mockLocation = { status: 'ready', coords: { lat: 0, lon: 0 }, accuracy: null, coarse: true, retry: jest.fn() };
+    await renderScreen();
+    expect(screen.getByText(/Tu ubicación es aproximada/)).toBeTruthy();
+    expect(screen.queryByText('111 m · 2 min')).toBeNull();
+  });
+
+  it('blocked: enseña "Abrir ajustes" y al pulsarlo abre los ajustes del móvil', async () => {
+    const open = jest.spyOn(Linking, 'openSettings').mockResolvedValue();
+    mockLocation = { status: 'blocked', coords: null, retry: jest.fn() };
+    await renderScreen();
+    await fireEvent.press(screen.getByText('Abrir ajustes'));
+    expect(open).toHaveBeenCalledTimes(1);
+    open.mockRestore();
+  });
+
+  it('asking: muestra "Pidiendo permiso…"', async () => {
+    mockLocation = { status: 'asking', coords: null, retry: jest.fn() };
+    await renderScreen();
+    expect(screen.getByText('Pidiendo permiso…')).toBeTruthy();
+  });
+
+  it('nosignal: avisa de que no hay señal GPS y ofrece reintentar', async () => {
+    mockLocation = { status: 'nosignal', coords: null, retry: jest.fn() };
+    await renderScreen();
+    expect(screen.getByText(/No encontramos señal GPS/)).toBeTruthy();
+    await fireEvent.press(screen.getByText('Permitir ubicación'));
+    expect(mockLocation.retry).toHaveBeenCalledTimes(1);
   });
 
   it('denied: botón "Permitir ubicación" que llama a retry, y los favoritos siguen visibles', async () => {

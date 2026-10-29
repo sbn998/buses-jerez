@@ -26,7 +26,9 @@ export default function Cerca() {
   const { data } = useData();
   const now = useNow();
   const favorites = useFavorites((s) => s.items);
-  const { status, coords, retry } = useLocation();
+  const { status, coords, accuracy, coarse, retry } = useLocation();
+  // Posición poco fiable: margen de error de más de 100 m, o permiso de ubicación aproximada.
+  const approximate = coarse || (accuracy ?? 0) > 100;
   // Paradas que el usuario ha abierto o cerrado a mano (la más cercana empieza abierta).
   const [toggled, setToggled] = useState<Record<string, boolean>>({});
 
@@ -45,7 +47,14 @@ export default function Cerca() {
         {status === 'ready' ? (
           nearby ? (
             <>
-              <ThemedText type="subtitle">{t('nearby.stopsWithin')}</ThemedText>
+              <ThemedText type="subtitle">{t(nearby.withinRadius ? 'nearby.stopsWithin' : 'nearby.closest')}</ThemedText>
+              {approximate ? (
+                <ThemedText themeColor="textSecondary">
+                  {accuracy != null && accuracy > 100
+                    ? t('nearby.approxLocation', { meters: Math.round(accuracy) })
+                    : t('nearby.approxLocationNoMeters')}
+                </ThemedText>
+              ) : null}
               {nearby.withinRadius ? null : (
                 <ThemedText themeColor="textSecondary">{t('nearby.farWarning')}</ThemedText>
               )}
@@ -53,6 +62,7 @@ export default function Cerca() {
                 <NearbyStopCard
                   key={item.stop.code}
                   item={item}
+                  showMinutes={!approximate}
                   now={now}
                   open={toggled[item.stop.code] ?? index === 0}
                   onToggle={() =>

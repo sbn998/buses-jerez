@@ -18,9 +18,11 @@ interface Props {
   now: Date;
   onToggle: () => void;
   onSelectLine: (lineId: string, stopCode: string) => void;
+  /** false cuando la posición es aproximada: los minutos andando no serían de fiar. */
+  showMinutes?: boolean;
 }
 
-export function NearbyStopCard({ item, open, now, onToggle, onSelectLine }: Props) {
+export function NearbyStopCard({ item, open, now, onToggle, onSelectLine, showMinutes = true }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const { data } = useData();
@@ -28,7 +30,9 @@ export function NearbyStopCard({ item, open, now, onToggle, onSelectLine }: Prop
   const dayType = dayTypeFor(now, data.holidays);
 
   // "120 m · 2 min", y si la posición de la parada no es exacta, se avisa.
-  let distance = t('nearby.distance', { meters: Math.round(item.meters), minutes: item.minutes });
+  let distance = showMinutes
+    ? t('nearby.distance', { meters: Math.round(item.meters), minutes: item.minutes })
+    : t('nearby.distanceOnly', { meters: Math.round(item.meters) });
   if (stop.approximate) distance += ` · ${t('nearby.approximate')}`;
 
   return (

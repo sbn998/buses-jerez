@@ -40,6 +40,10 @@ const en: Textos = {
     freshnessBundled: 'Official Comujesa timetables · copy included in the app, from {{date}}',
   },
   nearby: {
+    closest: 'Closest stops',
+    approxLocation: 'Your location is approximate (±{{meters}} m). Distances may not be exact.',
+    approxLocationNoMeters: 'Your location is approximate. Distances may not be exact.',
+    distanceOnly: '{{meters}} m',
     stopsWithin: 'Stops within 500 m',
     farWarning: 'No stops within 500 m. These are the closest ones',
     mapSoon: 'The map is coming soon',
@@ -51,6 +55,7 @@ const en: Textos = {
     waiting: 'Finding your position…',
     deniedText: 'We need your location to show you the nearest stops. It is only used on your phone.',
     unavailableText: "Can't get your location. Check that location is turned on.",
+    nosignalText: 'We could not find a GPS signal. Try outdoors, or with your phone location turned on.',
     allowLocation: 'Allow location',
     blockedText: 'Location permission is turned off. Turn it on in your phone settings to see nearby stops.',
     openSettings: 'Open settings',
