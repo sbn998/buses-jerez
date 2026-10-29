@@ -139,9 +139,8 @@ export default function Horarios() {
   }
 
   return (
-    <SafeAreaView edges={['top']} style={[styles.screen, { backgroundColor: theme.background }]}>
+    <SafeAreaView edges={['left', 'right']} style={[styles.screen, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
-        <ThemedText type="subtitle">{t('tabs.schedules')}</ThemedText>
         {content}
         <DataFreshness />
       </ScrollView>

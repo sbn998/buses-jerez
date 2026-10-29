@@ -1,4 +1,4 @@
-// Prueba del componente ComingSoon: debe mostrar el título y "Próximamente".
+// Prueba del componente ComingSoon: debe mostrar solo "Próximamente".
 import { render, screen } from '@testing-library/react-native';
 
 import { initI18n } from '@/i18n';
@@ -11,9 +11,8 @@ beforeAll(() => {
 });
 
 describe('ComingSoon', () => {
-  it('muestra el título y el texto Próximamente', async () => {
-    await render(<ComingSoon title="Cerca de mí" />);
-    expect(screen.getByText('Cerca de mí')).toBeTruthy();
+  it('muestra el texto Próximamente', async () => {
+    await render(<ComingSoon />);
     expect(screen.getByText('Próximamente')).toBeTruthy();
   });
 });
