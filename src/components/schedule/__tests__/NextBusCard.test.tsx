@@ -30,4 +30,10 @@ describe('NextBusCard', () => {
     expect(screen.getByText('10:37')).toBeTruthy();
     expect(screen.getByText('Hacia San Telmo')).toBeTruthy();
   });
+
+  it('con 0 minutos dice "ahora" en vez de "en 0 min"', async () => {
+    await render(<NextBusCard departures={[{ time: '10:14', minutesUntil: 0 }]} headsign={null} />);
+    expect(screen.getByText('ahora')).toBeTruthy();
+    expect(screen.queryByText('en 0 min')).toBeNull();
+  });
 });

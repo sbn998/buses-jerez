@@ -27,7 +27,7 @@ export default function Horarios() {
   const { t } = useTranslation();
   const theme = useTheme();
   const { data } = useData();
-  const params = useLocalSearchParams<{ line?: string; stop?: string }>();
+  const params = useLocalSearchParams<{ line?: string; stop?: string; nonce?: string }>();
   const favorites = useFavorites((s) => s.items);
   const toggleFavorite = useFavorites((s) => s.toggle);
 
@@ -36,14 +36,15 @@ export default function Horarios() {
   // null = "hoy" (así el día elegido sigue siendo hoy aunque pase la medianoche).
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
-  // Si llegan parámetros nuevos (por ejemplo desde otra pestaña), se aplican.
+  // Si llegan parámetros nuevos (por ejemplo desde otra pestaña), se aplican. El nonce cambia en
+  // cada apertura, así se reaplican aunque línea y parada sean las mismas que antes.
   useEffect(() => {
     if (params.line) {
       setLineId(params.line);
       setStopCode(params.stop ?? null);
       setSelectedKey(null);
     }
-  }, [params.line, params.stop]);
+  }, [params.line, params.stop, params.nonce]);
 
   // La hora actual (se renueva al cambiar de minuto y al volver a la app).
   const now = useNow();

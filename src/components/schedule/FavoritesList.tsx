@@ -6,6 +6,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useData } from '@/data/DataProvider';
 import { useTheme } from '@/hooks/use-theme';
+import { formatMinutes } from '@/lib/format';
 import { findLineStop } from '@/lib/lineStop';
 import { dayTypeFor, nextDepartures } from '@/lib/schedule';
 import type { Favorite } from '@/stores/favorites';
@@ -52,7 +53,7 @@ export function FavoritesList({ items, now, onSelect }: Props) {
               <ThemedText numberOfLines={1}>{stop.name}</ThemedText>
               <ThemedText type="small" themeColor="textSecondary">
                 {next
-                  ? `${next.time} · ${t('schedule.inMinutes', { minutes: next.minutesUntil })}`
+                  ? `${next.time} · ${formatMinutes(next.minutesUntil, t)}`
                   : t('schedule.noMoreToday')}
               </ThemedText>
             </View>

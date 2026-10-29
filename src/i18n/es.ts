@@ -21,6 +21,7 @@ const es = {
     openFavorite: 'Abrir {{line}} en {{stop}}',
     nextBus: 'Próximo bus',
     thenBuses: 'Después',
+    now: 'ahora',
     inMinutes: 'en {{minutes}} min',
     noMoreToday: 'No quedan buses hoy',
     noService: 'Sin servicio este día',

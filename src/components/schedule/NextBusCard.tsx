@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import type { TimeOfDay } from '@/data/schema';
 import { useTheme } from '@/hooks/use-theme';
+import { formatMinutes } from '@/lib/format';
 
 interface Props {
   departures: { time: TimeOfDay; minutesUntil: number }[];
@@ -28,7 +29,7 @@ export function NextBusCard({ departures, headsign }: Props) {
           <View style={styles.big}>
             <ThemedText style={styles.time}>{first.time}</ThemedText>
             <ThemedText themeColor="textSecondary">
-              {t('schedule.inMinutes', { minutes: first.minutesUntil })}
+              {formatMinutes(first.minutesUntil, t)}
             </ThemedText>
           </View>
           {others.length > 0 ? (

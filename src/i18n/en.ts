@@ -26,6 +26,7 @@ const en: Textos = {
     openFavorite: 'Open {{line}} at {{stop}}',
     nextBus: 'Next bus',
     thenBuses: 'Then',
+    now: 'now',
     inMinutes: 'in {{minutes}} min',
     noMoreToday: 'No more buses today',
     noService: 'No service this day',
