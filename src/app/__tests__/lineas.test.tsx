@@ -54,6 +54,6 @@ describe('pestaña Líneas', () => {
     expect(rows[1].props.accessibilityLabel).toBe('Línea 2');
 
     await fireEvent.press(rows[0]);
-    expect(mockPush).toHaveBeenCalledWith('/linea/1');
+    expect(mockPush).toHaveBeenCalledWith('/(tabs)/lineas/1');
   });
 });

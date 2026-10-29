@@ -6,7 +6,7 @@ import type { Dataset, Line } from '@/data/schema';
 import { initI18n } from '@/i18n';
 import { openSchedule } from '@/lib/navigation';
 
-import Linea from '../linea/[id]';
+import Linea from '../(tabs)/lineas/[id]';
 
 const mockBack = jest.fn();
 const mockRouter = { push: jest.fn(), back: mockBack, canGoBack: () => true };

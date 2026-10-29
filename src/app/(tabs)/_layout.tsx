@@ -1,12 +1,11 @@
 // Barra de 5 pestañas de la app, en este orden:
 // Cerca de mí · Horarios · Cómo llego · Líneas · Recarga.
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { router, Tabs } from 'expo-router';
+import { Tabs } from 'expo-router';
 import type { ComponentProps } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable } from 'react-native';
 
-import { useTheme } from '@/hooks/use-theme';
+import { OptionsButton } from '@/components/OptionsButton';
 
 type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -21,21 +20,12 @@ const PESTANAS: { name: string; titleKey: string; icon: IconName }[] = [
 
 export default function TabsLayout() {
   const { t } = useTranslation();
-  const theme = useTheme();
   return (
     <Tabs
       screenOptions={{
         headerShown: true,
         // Engranaje a la derecha de la cabecera de cada pestaña: abre Opciones.
-        headerRight: () => (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('options.open')}
-            onPress={() => router.push('/opciones')}
-            style={{ padding: 12 }}>
-            <MaterialCommunityIcons name="cog-outline" size={24} color={theme.text} />
-          </Pressable>
-        ),
+        headerRight: () => <OptionsButton />,
       }}>
       {PESTANAS.map((p) => (
         <Tabs.Screen
@@ -43,6 +33,8 @@ export default function TabsLayout() {
           name={p.name}
           options={{
             title: t(p.titleKey),
+            // Líneas tiene su propia pila con cabecera: así no sale una doble cabecera.
+            ...(p.name === 'lineas' ? { headerShown: false } : {}),
             tabBarIcon: ({ color, size }) => (
               <MaterialCommunityIcons name={p.icon} color={color as string} size={size} />
             ),
