@@ -55,6 +55,11 @@ const en: Textos = {
     blockedText: 'Location permission is turned off. Turn it on in your phone settings to see nearby stops.',
     openSettings: 'Open settings',
   },
+  lines: {
+    route: 'Route',
+    notFound: 'Line not found',
+    back: 'Go back',
+  },
   common: {
     comingSoon: 'Coming soon',
   },

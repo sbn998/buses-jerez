@@ -50,6 +50,11 @@ const es = {
     blockedText: 'El permiso de ubicación está desactivado. Actívalo en los ajustes del móvil para ver las paradas cercanas.',
     openSettings: 'Abrir ajustes',
   },
+  lines: {
+    route: 'Recorrido',
+    notFound: 'Línea no encontrada',
+    back: 'Volver',
+  },
   common: {
     comingSoon: 'Próximamente',
   },

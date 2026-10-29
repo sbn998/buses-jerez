@@ -27,8 +27,16 @@ export default function RootLayout() {
       <DataProvider>
         <ErrorBoundary>
           <Stack screenOptions={{ headerShown: false }}>
-            {/* Opciones es la única pantalla con cabecera propia (con botón de volver). */}
+            {/* Opciones y el detalle de línea llevan cabecera propia (con botón de volver). */}
             <Stack.Screen name="opciones" options={{ headerShown: true, title: t('options.title') }} />
+            {/* El detalle de línea también lleva cabecera, con el título "Línea N". */}
+            <Stack.Screen
+              name="linea/[id]"
+              options={({ route }) => ({
+                headerShown: true,
+                title: t('schedule.lineLabel', { id: (route.params as { id?: string } | undefined)?.id ?? '' }),
+              })}
+            />
           </Stack>
         </ErrorBoundary>
       </DataProvider>
