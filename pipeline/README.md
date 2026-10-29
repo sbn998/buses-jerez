@@ -35,6 +35,7 @@ Las piezas se van añadiendo conforme se construyen. Cada archivo empieza con un
 | `overrides.json` | Correcciones manuales de ubicación de paradas, para los casos que el mapa oficial no resuelve. |
 | `src/trips.ts` | Reconstruye los viajes: qué hora de cada parada corresponde al mismo autobús. |
 | `src/holidays.ts` y `holidays-local.json` | Festivos nacionales y andaluces (automáticos) y locales de Jerez (a mano, una vez al año). |
+| `src/topup.ts` y `topup-points.json` | Puntos de recarga de la tarjeta, copiados a mano del cartel oficial de Comujesa. |
 | `src/validate.ts` | Revisa los datos antes de publicar. Si algo está roto o sospechoso, bloquea la publicación. |
 | `src/cleanTimes.ts` | Corrige pequeños fallos de los datos oficiales: quita horas imposibles (como "00:01") y ordena las desordenadas. |
 | `src/osm.ts` | Paradas de OpenStreetMap, el último recurso para ubicar paradas nuevas que no salen en los mapas oficiales. |
@@ -46,6 +47,8 @@ Las piezas se van añadiendo conforme se construyen. Cada archivo empieza con un
 - **`overrides.json`**: las paradas con `"approximate": true` tienen una ubicación estimada (copiada de su parada gemela) y la app lo indicará. Si pasas por ellas, comprueba dónde están exactamente y corrige la latitud y longitud.
 - **`holidays-local.json`**: cada año, añade los 2 festivos locales de Jerez (salen en el BOJA, normalmente en octubre). No hace falta acordarse: desde octubre, GitHub abre una Issue para recordártelo. Formato: `{ "2027": [{ "date": "2027-10-09", "name": "San Dionisio" }] }`.
 - **`holidays-regional-extra.json`**: cada primavera, el BOJA publica el decreto con las fiestas laborales de Andalucía del año siguiente. Si algún festivo se traslada al lunes (porque cae en domingo), date.nager.at no lo incluye: añádelo aquí. Formato: `{ "2027": [{ "date": "2027-03-01", "name": "Día de Andalucía (trasladado)" }] }`. La Issue mensual de GitHub también te lo recuerda.
+- **`topup-points.json`**: Comujesa publica los puntos de recarga solo como una imagen (un cartel). Si cambia, GitHub abre una Issue "Ha cambiado el cartel de puntos de recarga": copia la lista nueva en `points`, y actualiza `posterImage` (la ruta de la imagen que contiene `RedVenta`) y `checked` (la fecha).
 - **Avisos del proceso**: en GitHub → Actions → el último proceso, la sección de avisos lista lo que se ha corregido automáticamente.
 | `src/previous.ts` | Descarga la versión publicada anterior para comparar. Si falla por algo que no sea "todavía no existe", no se publica. |
 | `src/checkHolidays.ts` | Comprueba si faltan festivos locales. GitHub lo ejecuta el día 1 de cada mes y, si faltan, abre una Issue (te llega por correo). |
+| `src/checkTopUp.ts` | Comprueba si Comujesa ha subido otro cartel de recarga. Lo ejecuta el mismo proceso mensual de GitHub y, si ha cambiado, abre una Issue. |

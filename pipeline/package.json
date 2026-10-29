@@ -5,7 +5,8 @@
   "scripts": {
     "test": "vitest run",
     "build-data": "tsx src/main.ts",
-    "check-holidays": "tsx src/checkHolidays.ts"
+    "check-holidays": "tsx src/checkHolidays.ts",
+    "check-topup": "tsx src/checkTopUp.ts"
   },
   "dependencies": {
     "cheerio": "^1.2.0",

@@ -7,7 +7,7 @@
  *     Las horas se limpian (cleanTimes) al descargarlas.
  *  2. Descargar las paradas de OpenStreetMap (último recurso para ubicarlas),
  *     ensamblar líneas y paradas, y reconstruir los viajes de cada tipo de día.
- *  3. Añadir los festivos.
+ *  3. Añadir los festivos y los puntos de recarga.
  *  4. Descargar la versión publicada anterior y validar comparando con ella.
  *  5. Si todo está bien, escribir out/data.json y out/manifest.json. Si no,
  *     terminar con error (código 1) sin escribir nada publicable.
@@ -28,6 +28,7 @@ import { OVERPASS_QUERY, OVERPASS_URL, parseOverpass } from './osm';
 import { fetchPrevious } from './previous';
 import { buildTrips } from './trips';
 import { cleanTimes } from './cleanTimes';
+import { loadTopUp, type TopUpFile } from './topup';
 import { validate } from './validate';
 
 const OUT_DIR = new URL('../out/', import.meta.url);
@@ -101,12 +102,17 @@ async function main() {
   );
   warnings.push(...holidays.warnings);
 
+  // Puntos de recarga: copiados a mano del cartel oficial (topup-points.json).
+  const topUp = readJson<TopUpFile>('topup-points.json');
+
   const dataset: Dataset = {
     schemaVersion: SCHEMA_VERSION,
     generatedAt: new Date().toISOString(),
     lines,
     stops: assembled.stops,
     holidays: holidays.holidays,
+    topUpPoints: loadTopUp(topUp),
+    topUpChecked: topUp.checked,
   };
   const prev = await fetchPrevious();
   if (prev.ok && prev.previous === null) warnings.push('no previous dataset (first run)');

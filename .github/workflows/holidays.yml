@@ -1,11 +1,16 @@
-# Comprobación mensual de los festivos locales de Jerez.
+# Comprobaciones mensuales (el archivo se llama holidays.yml por historia).
 #
+# 1) Festivos locales de Jerez.
 # El día 1 de cada mes, GitHub mira si pipeline/holidays-local.json tiene los
 # festivos locales que hacen falta (los del año actual y, desde octubre, los del
 # siguiente). Si falta alguno, abre una Issue en el repositorio para recordártelo.
 # GitHub te avisa por correo. Si ya hay una Issue abierta para esos años, no repite.
 # Para cerrarla: añade las fechas al archivo y cierra la Issue.
-name: Festivos locales
+#
+# 2) Cartel de puntos de recarga. Si Comujesa sube un cartel distinto al que tenemos
+# copiado en pipeline/topup-points.json, abre una Issue para que lo actualices
+# (tampoco repite si ya hay una abierta).
+name: Comprobaciones mensuales
 
 on:
   schedule:
@@ -59,3 +64,25 @@ jobs:
           Revisa también el decreto del BOJA con el calendario de fiestas laborales de Andalucía (se publica cada primavera para el año siguiente). Si algún festivo andaluz se traslada al lunes (por ejemplo, cuando cae en domingo), añádelo a \`pipeline/holidays-regional-extra.json\`, porque date.nager.at no lo incluye.
 
           Mientras falten, esos días la app mostrará el horario laborable en vez del de domingos y festivos."
+
+      - name: Comprobar el cartel de puntos de recarga
+        id: topup
+        run: echo "changed=$(npm run --silent check-topup)" >> "$GITHUB_OUTPUT"
+      - name: Abrir aviso del cartel de recarga
+        if: steps.topup.outputs.changed != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="Ha cambiado el cartel de puntos de recarga"
+          if gh issue list --state open --search "in:title \"${title}\"" --json number --jq '.[0].number' | grep -q .; then
+            echo "Ya hay una Issue abierta: ${title}"
+            exit 0
+          fi
+          gh issue create --title "${title}" --body "Comujesa ha subido otro cartel de establecimientos de recarga en https://www.comujesa.es/autobuses-urbanos/punto-venta-multiviaje
+
+          Para actualizar la app:
+          1. Copia la lista del cartel nuevo en \`pipeline/topup-points.json\` (campo \`points\`).
+          2. Cambia \`posterImage\` por la ruta de la imagen nueva (la que contiene \`RedVenta\` en su nombre) y \`checked\` por la fecha de hoy.
+          3. Cierra esta Issue.
+
+          Mientras no se actualice, la app seguirá mostrando la lista anterior."

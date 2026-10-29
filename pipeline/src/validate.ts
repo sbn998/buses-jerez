@@ -11,6 +11,7 @@ import type { Dataset, DayType } from '../../src/data/schema';
 
 const EXPECTED_LINES = Array.from({ length: 18 }, (_, i) => String(i + 1));
 const DAY_TYPES: DayType[] = ['lab', 'sab', 'fes'];
+const TOPUP_ZONES = ['oficina', 'centro', 'oeste', 'este', 'norte', 'sur'];
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 // Zona de Jerez, incluidas las pedanías (Guadalcacín, Nueva Jarilla, El Portal...).
 const LAT = [36.55, 36.85];
@@ -93,7 +94,17 @@ export function validate(ds: Dataset, previous: Dataset | null): string[] {
     }
   }
 
-  // 7. Comparación con la versión anterior.
+  // 7. Puntos de recarga (si los hay): al menos uno, con nombre, dirección y zona válidos.
+  if (ds.topUpPoints) {
+    if (ds.topUpPoints.length < 1) errors.push('top-up points list is empty');
+    ds.topUpPoints.forEach((p, i) => {
+      if (!p.name?.trim()) errors.push(`top-up point #${i} has no name`);
+      if (!p.address?.trim()) errors.push(`top-up point #${i} (${p.name}) has no address`);
+      if (!TOPUP_ZONES.includes(p.zone)) errors.push(`top-up point #${i} (${p.name}) has invalid zone "${p.zone}"`);
+    });
+  }
+
+  // 8. Comparación con la versión anterior.
   if (previous) {
     const prevTimes = countTimes(previous);
     const nowTimes = countTimes(ds);

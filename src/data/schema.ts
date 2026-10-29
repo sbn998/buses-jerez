@@ -67,6 +67,15 @@ export interface Holiday {
   scope: 'national' | 'regional' | 'local';
 }
 
+/** Un sitio donde se puede recargar la tarjeta, copiado del cartel oficial de Comujesa. */
+export interface TopUpPoint {
+  name: string;
+  address: string;
+  zone: 'oficina' | 'centro' | 'oeste' | 'este' | 'norte' | 'sur';
+  /** Aviso extra, por ejemplo un horario limitado. */
+  note?: string;
+}
+
 /** Todo lo que descarga la app en un solo archivo (data.json). */
 export interface Dataset {
   schemaVersion: 1;
@@ -74,6 +83,10 @@ export interface Dataset {
   lines: Line[];
   stops: Record<string, Stop>;
   holidays: Holiday[];
+  /** Puntos de recarga. Opcional: las copias antiguas de los datos no lo traen. */
+  topUpPoints?: TopUpPoint[];
+  /** Fecha "AAAA-MM-DD" en que se revisó el cartel oficial de recarga. */
+  topUpChecked?: string;
 }
 
 /**
