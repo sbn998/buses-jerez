@@ -7,6 +7,7 @@
     "build-data": "tsx src/main.ts",
     "check-holidays": "tsx src/checkHolidays.ts",
     "check-topup": "tsx src/checkTopUp.ts",
+    "geocode-topup": "tsx src/geocodeTopup.ts",
     "write-style": "tsx src/map/writeStyle.ts"
   },
   "dependencies": {

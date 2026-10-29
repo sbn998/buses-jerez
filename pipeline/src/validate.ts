@@ -14,8 +14,8 @@ const DAY_TYPES: DayType[] = ['lab', 'sab', 'fes'];
 const TOPUP_ZONES = ['oficina', 'centro', 'oeste', 'este', 'norte', 'sur'];
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 // Zona de Jerez, incluidas las pedanías (Guadalcacín, Nueva Jarilla, El Portal...).
-const LAT = [36.55, 36.85];
-const LON = [-6.35, -5.85];
+export const LAT = [36.55, 36.85];
+export const LON = [-6.35, -5.85];
 // Cambios máximos permitidos respecto a la versión anterior (decisión del plan).
 // Un cambio mayor suele ser señal de que algo se descargó o se leyó mal.
 const MAX_TIMES_DROP = 0.2;
@@ -109,6 +109,14 @@ export function validate(ds: Dataset, previous: Dataset | null): string[] {
       if (!p.name?.trim()) errors.push(`top-up point #${i} has no name`);
       if (!p.address?.trim()) errors.push(`top-up point #${i} (${p.name}) has no address`);
       if (!TOPUP_ZONES.includes(p.zone)) errors.push(`top-up point #${i} (${p.name}) has invalid zone "${p.zone}"`);
+      // Coordenadas (opcionales): van las dos juntas y dentro de la caja de Jerez.
+      if ((p.lat === undefined) !== (p.lon === undefined)) {
+        errors.push(`top-up point #${i} (${p.name}) has only one of lat/lon coordinates`);
+      } else if (p.lat !== undefined && p.lon !== undefined) {
+        if (!Number.isFinite(p.lat) || !Number.isFinite(p.lon) || p.lat < LAT[0] || p.lat > LAT[1] || p.lon < LON[0] || p.lon > LON[1]) {
+          errors.push(`top-up point #${i} (${p.name}) is outside Jerez: ${p.lat},${p.lon}`);
+        }
+      }
     });
     // Si hay puntos, tiene que constar cuándo se revisó el cartel.
     if (ds.topUpChecked === undefined) errors.push('topUpChecked is missing (required with topUpPoints)');

@@ -6,7 +6,7 @@
  * - Se identifica con un User-Agent que dice quiénes somos y dónde está el proyecto.
  */
 
-const USER_AGENT = 'buses-jerez-data/1.0 (+https://github.com/sbn998/buses-jerez)';
+export const USER_AGENT = 'buses-jerez-data/1.0 (+https://github.com/sbn998/buses-jerez)';
 
 export interface ClientOptions {
   delayMs?: number;

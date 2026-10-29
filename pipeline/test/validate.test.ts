@@ -142,4 +142,17 @@ describe('validate', () => {
     // prev tiene 44 paradas y el nuevo 36: baja un 18 %.
     expect(validate(makeDataset(), prev).join()).toMatch(/stops/);
   });
+
+  it('rejects a top-up point outside Jerez, or with only one coordinate', () => {
+    const ds = makeDataset();
+    ds.topUpChecked = "2026-10-29";
+    ds.topUpPoints = [{ name: "A", address: "B", zone: "centro", lat: 40, lon: -3 }];
+    expect(validate(ds, null).join()).toMatch(/top-up point #0.*outside Jerez/);
+    ds.topUpPoints = [{ name: "A", address: "B", zone: "centro", lat: 36.68 }];
+    expect(validate(ds, null).join()).toMatch(/top-up point #0.*coordinates/);
+    ds.topUpPoints = [{ name: "A", address: "B", zone: "centro", lat: 36.68, lon: -6.13, approximate: true }];
+    expect(validate(ds, null)).toEqual([]);
+    ds.topUpPoints = [{ name: "A", address: "B", zone: "centro" }];
+    expect(validate(ds, null)).toEqual([]);
+  });
 });

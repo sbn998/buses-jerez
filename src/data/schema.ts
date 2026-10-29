@@ -74,6 +74,11 @@ export interface TopUpPoint {
   zone: 'oficina' | 'centro' | 'oeste' | 'este' | 'norte' | 'sur';
   /** Aviso extra, por ejemplo un horario limitado. */
   note?: string;
+  /** Ubicación en el mapa. Si falta, el punto solo sale en la lista. */
+  lat?: number;
+  lon?: number;
+  /** true si la ubicación es de una calle o zona, no del local exacto (se dibuja como círculo hueco). */
+  approximate?: boolean;
 }
 
 /** Todo lo que descarga la app en un solo archivo (data.json). */
