@@ -98,6 +98,13 @@ export default function ComoLlego() {
 
   // Las opciones de bus de hoy (se recalculan solo si cambian los puntos, los datos o el minuto).
   const options = useMemo(() => (ready ? planTrips(data, from, to, now) : []), [ready, data, from, to, now]);
+  // Si no hay opciones ahora, se mira desde la medianoche de hoy: si entonces sí había buses, es que
+  // ya pasaron todos ("hoy ya no quedan"); si tampoco, ninguna ruta con 1 transbordo une los dos puntos.
+  const noRouteAtAll = useMemo(() => {
+    if (!ready || options.length > 0) return false;
+    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return planTrips(data, from, to, midnight).length === 0;
+  }, [ready, options, data, from, to, now]);
   const sorted = useMemo(() => sortOptions(options, sort), [options, sort]);
   const selected = sorted.find((o) => o.id === selectedId) ?? sorted[0] ?? null;
 
@@ -221,6 +228,10 @@ export default function ComoLlego() {
               />
             )}
 
+            {!pickingOrigin && destination && from === null ? (
+              <ThemedText themeColor="textSecondary">{t('directions.locating')}</ThemedText>
+            ) : null}
+
             {ready ? (
               <>
                 {walkInstead ? (
@@ -241,7 +252,9 @@ export default function ComoLlego() {
                   />
                 </View>
                 {sorted.length === 0 ? (
-                  <ThemedText themeColor="textSecondary">{t('directions.noBusesToday')}</ThemedText>
+                  <ThemedText themeColor="textSecondary">
+                    {t(noRouteAtAll ? 'directions.noRoute' : 'directions.noBusesToday')}
+                  </ThemedText>
                 ) : (
                   <>
                     <SortSelector

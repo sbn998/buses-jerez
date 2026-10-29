@@ -108,6 +108,12 @@ const en: Textos = {
     alight: 'Get off at {{stop}} at {{time}} ({{meters}} m from your destination)',
     approxDistances: 'Approximate distances',
     noBusesToday: 'No more buses today for this trip',
+    noRoute: 'No bus options with at most 1 transfer for this trip',
+    locating: 'Finding your location…',
+    transferWalk: 'Get off at {{from}} and walk about {{meters}} m to {{to}}',
+    boardNext: 'Board line {{line}} at {{stop}} at {{time}}',
+    boardNextSame: 'Board line {{line}} at {{time}}',
+    lineTowards: 'Line {{line}} towards {{headsign}}',
     walkInstead: 'It is {{meters}} m away: better to walk (about {{minutes}} min)',
   },
   common: {

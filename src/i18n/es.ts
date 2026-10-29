@@ -103,6 +103,12 @@ const es = {
     alight: 'Bájate en {{stop}} a las {{time}} (a {{meters}} m del destino)',
     approxDistances: 'Distancias aproximadas',
     noBusesToday: 'Hoy ya no quedan buses para este trayecto',
+    noRoute: 'No hay opciones en bus con como mucho 1 transbordo para este trayecto',
+    locating: 'Buscando tu ubicación…',
+    transferWalk: 'Bájate en {{from}} y anda unos {{meters}} m hasta {{to}}',
+    boardNext: 'Súbete a la línea {{line}} en {{stop}} a las {{time}}',
+    boardNextSame: 'Súbete a la línea {{line}} a las {{time}}',
+    lineTowards: 'Línea {{line}} hacia {{headsign}}',
     walkInstead: 'Está a {{meters}} m: mejor ir andando (unos {{minutes}} min)',
   },
   common: {

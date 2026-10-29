@@ -68,6 +68,8 @@ const data: Dataset = {
     makeLine('2', '#CC0033', ['A', 'D1'], ['10:05', '10:30']),
   ],
 };
+// Los datos que usa la pantalla (algunas pruebas los cambian).
+let screenData: Dataset = data;
 // Destino lejos (a unos 2,2 km) y destino a 200 m del origen.
 const lejos: Place = { id: 'N3', name: 'Hospital', detail: 'Norte', lat: 36.7, lon: -6.13 };
 const cerquita: Place = { id: 'N4', name: 'Kiosco', detail: 'Centro', lat: 36.6818, lon: -6.13 };
@@ -80,6 +82,7 @@ afterEach(() => {
 });
 beforeEach(() => {
   resetMock();
+  screenData = data;
   mockNow = new Date(2026, 9, 28, 10, 0, 0);
   mockOnline.mockReset().mockResolvedValue(true);
   mockSearch.mockReset().mockResolvedValue([luz]);
@@ -89,7 +92,7 @@ beforeEach(() => {
 // Pinta la pantalla con los datos pequeños de arriba.
 function renderWithData() {
   return render(
-    <DataProvider value={{ data, source: 'bundled', checkedAt: null }}>
+    <DataProvider value={{ data: screenData, source: 'bundled', checkedAt: null }}>
       <ComoLlego />
     </DataProvider>,
   );
@@ -306,6 +309,36 @@ describe('pantalla Cómo llego', () => {
       await pickDestination(lejos);
       expect(screen.getByText('Hoy ya no quedan buses para este trayecto')).toBeTruthy();
       expect(screen.queryAllByTestId(/^route-option-/)).toHaveLength(0);
+    });
+
+    it('si ninguna línea conecta los dos puntos ni a medianoche, lo dice y no dice "ya no quedan buses"', async () => {
+      // Una línea aislada junto al destino: desde el origen no hay forma de llegar con 1 transbordo.
+      screenData = {
+        ...data,
+        stops: { ...data.stops, Z1: stopAt('Z1', 'Isla 1', 36.74), Z2: stopAt('Z2', 'Isla 2', 36.75) },
+        lines: [...data.lines, makeLine('9', '#00AA00', ['Z1', 'Z2'], ['10:05', '10:10'])],
+      };
+      await renderScreen();
+      await pickDestination({ id: 'N5', name: 'Isla', detail: 'Norte', lat: 36.75, lon: -6.13 });
+      expect(
+        screen.getByText('No hay opciones en bus con como mucho 1 transbordo para este trayecto'),
+      ).toBeTruthy();
+      expect(screen.queryByText('Hoy ya no quedan buses para este trayecto')).toBeNull();
+    });
+
+    it('a mediodía, si hubo buses esta mañana pero ya no, sigue diciendo que hoy ya no quedan', async () => {
+      mockNow = new Date(2026, 9, 28, 12, 0, 0);
+      await renderScreen();
+      await pickDestination(lejos);
+      expect(screen.getByText('Hoy ya no quedan buses para este trayecto')).toBeTruthy();
+      expect(screen.queryByText(/como mucho 1 transbordo/)).toBeNull();
+    });
+
+    it('mientras llega tu ubicación y ya hay destino, dice que la está buscando', async () => {
+      mockLocation = { status: 'asking', coords: null, retry: jest.fn() };
+      await renderScreen();
+      await pickDestination(lejos);
+      expect(screen.getByText('Buscando tu ubicación…')).toBeTruthy();
     });
 
     it('con el destino a 200 m sugiere ir andando y sigue enseñando los buses', async () => {

@@ -87,6 +87,51 @@ describe('RouteOptionCard', () => {
     expect(screen.getByText('4')).toBeTruthy();
   });
 
+  it('con transbordo andando manda a la parada de la otra acera, con código y hora del segundo bus', async () => {
+    const bajada = stop('323', 'Parque Atlántico');
+    const subida = stop('188', 'Parque Atlántico');
+    const option: RouteOption = {
+      ...withTransfer,
+      legs: [
+        leg(line('1', '#FFDE4D'), A, bajada, '10:05', '10:15'),
+        leg(line('4', '#CC0033'), subida, C, '10:25', '10:40'),
+      ],
+      transferWalk: walk(90),
+    };
+    await render(<RouteOptionCard option={option} selected={false} onPress={() => {}} />);
+    expect(
+      screen.getByText('Bájate en Parque Atlántico (323) y anda unos 90 m hasta Parque Atlántico (188)'),
+    ).toBeTruthy();
+    expect(screen.getByText('Súbete a la línea 4 en Parque Atlántico (188) a las 10:25')).toBeTruthy();
+    expect(screen.queryByText(/Transbordo en/)).toBeNull();
+  });
+
+  it('con transbordo en la misma parada enseña la espera y la hora del segundo bus', async () => {
+    await render(<RouteOptionCard option={withTransfer} selected={false} onPress={() => {}} />);
+    expect(screen.getByText('Transbordo en Cruce Central: espera 10 min')).toBeTruthy();
+    expect(screen.getByText('Súbete a la línea 4 a las 10:25')).toBeTruthy();
+  });
+
+  it('enseña "hacia …" de cada bus solo si la línea tiene dos sentidos', async () => {
+    const dosSentidos = (id: string, colour: string, cod: string): Line => ({
+      ...line(id, colour),
+      directions: [
+        { headsign: 'Norte', stopCodes: [cod] },
+        { headsign: 'Sur', stopCodes: ['Z'] },
+      ],
+    });
+    const option: RouteOption = {
+      ...withTransfer,
+      legs: [
+        leg(dosSentidos('1', '#FFDE4D', 'A'), A, B, '10:05', '10:15'),
+        leg(line('4', '#CC0033'), B, C, '10:25', '10:40'),
+      ],
+    };
+    await render(<RouteOptionCard option={option} selected={false} onPress={() => {}} />);
+    expect(screen.getByText('Línea 1 hacia Norte')).toBeTruthy();
+    expect(screen.queryByText(/Línea 4 hacia/)).toBeNull();
+  });
+
   it('la insignia usa el color de la línea', async () => {
     await render(<RouteOptionCard option={direct} selected={false} onPress={() => {}} />);
     expect(screen.getByTestId('badge-1')).toHaveStyle({ backgroundColor: '#FFDE4D' });

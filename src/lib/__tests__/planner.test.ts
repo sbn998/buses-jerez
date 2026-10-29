@@ -269,17 +269,45 @@ describe('planTrips', () => {
     expect(res).toHaveLength(2);
     expect(res.filter((r) => r.legs.length === 1).map((r) => r.id)).toEqual(['1:P1>P3']);
     expect(res.filter((r) => r.legs.length === 2)).toHaveLength(1);
-    // Con espacio de sobra salen las cuatro combinaciones (1 directa y 3 con transbordo).
-    expect(planTrips(data, pt(0, 0), pt(4000, 0), miercoles(10, 0))).toHaveLength(4);
+    // Con espacio de sobra salen las no dominadas: el directo y los dos transbordos que llegan antes
+    // (el cuarto, con transbordo y más tarde que otro igual, se descarta).
+    expect(planTrips(data, pt(0, 0), pt(4000, 0), miercoles(10, 0))).toHaveLength(3);
+  });
+
+  it('quita las opciones dominadas: igual de rápidas pero con más tramos', () => {
+    const data = mundo();
+    data.lines.push(linea('X', ['P2', 'P3']));
+    poner(data, '1', 'lab', [['10:05', '10:15', '10:30']]);
+    poner(data, 'X', 'lab', [['10:16', '10:30']]);
+    // 1|X llega igual que el directo 1 pero con un transbordo de más: sobra.
+    const res = planTrips(data, pt(0, 0), pt(4000, 0), miercoles(10, 0));
+    expect(res.map((r) => r.id)).toEqual(['1:P1>P3']);
+  });
+
+  it('deja una opción con transbordo si llega antes que el directo', () => {
+    const data = mundo();
+    data.lines.push(linea('X', ['P2', 'P3']), linea('Y', ['P2', 'P3']));
+    poner(data, '1', 'lab', [['10:05', '10:15', '10:40']]);
+    poner(data, 'X', 'lab', [['10:16', '10:30']]);
+    poner(data, 'Y', 'lab', [['10:16', '10:25']]);
+    const res = planTrips(data, pt(0, 0), pt(4000, 0), miercoles(10, 0));
+    // X queda dominada por Y (llega antes con lo mismo); el directo llega tarde pero no tiene transbordo.
+    expect(res.map((r) => r.id).sort()).toEqual(['1:P1>P2|Y:P2>P3', '1:P1>P3']);
   });
 
   it('respeta maxResults', () => {
     const data = mundo();
     expect(planTrips(data, pt(0, 0), pt(4000, 0), miercoles(10, 0), { maxResults: 0 })).toEqual([]);
 
-    // Tres líneas directas P1 -> P3 con llegadas distintas: con maxResults 2 salen las 2 más rápidas.
-    for (const [id, llega] of [['11', '10:40'], ['12', '10:30'], ['13', '10:50']]) {
-      data.lines.push(linea(id, ['P1', 'P2', 'P3']));
+    // Tres líneas directas que acaban en paradas distintas: la que llega antes anda más al destino y la
+    // que llega después anda menos, así que ninguna domina a otra. Con maxResults 2 salen las 2 más rápidas.
+    for (const [id, cod, este, llega] of [
+      ['11', 'E1', 500, '10:30'],
+      ['12', 'E2', 250, '10:40'],
+      ['13', 'P3', 0, '10:50'],
+    ] as const) {
+      if (cod !== 'P3') data.stops[cod] = parada(cod, 4000, este);
+      data.lines.push(linea(id, ['P1', 'P2', cod]));
       poner(data, id, 'lab', [['10:05', '10:15', llega]]);
     }
     const res = planTrips(data, pt(0, 0), pt(4000, 0), miercoles(10, 0), { maxResults: 2 });

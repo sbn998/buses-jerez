@@ -145,6 +145,8 @@ export function planTrips(
     return elegidas.map((x) => ({ stop: x.stop, walk: estimateWalk(point, x.stop, o.detourFactor) }));
   }
 
+  // Las claves de caché mezclan línea, posiciones y minuto de salida; el minuto cabe siempre en este margen.
+  const KEY_SPAN = 100000;
   // Memoria de bestRide: la misma consulta se repite muchas veces entre candidatas.
   const rideCache = new Map<number, Ride | null>();
 
@@ -153,7 +155,7 @@ export function planTrips(
    * dos horas puestas y la de bajada igual o posterior. Gana la llegada más temprana.
    */
   function bestRide(lineIdx: number, i: number, j: number, minDepart: number): Ride | null {
-    const key = ((lineIdx * 1024 + i) * 1024 + j) * 4096 + minDepart;
+    const key = ((lineIdx * 1024 + i) * 1024 + j) * KEY_SPAN + Math.min(minDepart, KEY_SPAN - 1);
     const guardado = rideCache.get(key);
     if (guardado !== undefined) return guardado;
     let best: Ride | null = null;
@@ -176,7 +178,7 @@ export function planTrips(
    * Sirve para probar, en un transbordo, otros buses de A si el primero no conecta bien.
    */
   function ridesInOrder(lineIdx: number, i: number, j: number, minDepart: number): Ride[] {
-    const key = ((lineIdx * 1024 + i) * 1024 + j) * 4096 + minDepart;
+    const key = ((lineIdx * 1024 + i) * 1024 + j) * KEY_SPAN + Math.min(minDepart, KEY_SPAN - 1);
     const guardado = ridesCache.get(key);
     if (guardado) return guardado;
     const lista: Ride[] = [];
@@ -357,9 +359,21 @@ export function planTrips(
 
   // Orden por llegada y recorte a maxResults, pero siempre se conserva el mejor viaje directo
   // (si lo hay): si se quedara fuera, ocupa el sitio de la opción con transbordo que llega más tarde.
-  const ordenadas = [...best.values()].sort(
-    (a, b) => a.arrivalMinutes - b.arrivalMinutes || a.walkMeters - b.walkMeters,
-  );
+  const todas = [...best.values()];
+  // Se quitan las dominadas: otra opción llega igual o antes, anda igual o menos y tiene igual o
+  // menos tramos, y en algo es estrictamente mejor. Así no sobran "saltitos" con el mismo bus.
+  const dominada = (x: RouteOption) =>
+    todas.some(
+      (y) =>
+        y !== x &&
+        y.arrivalMinutes <= x.arrivalMinutes &&
+        y.walkMeters <= x.walkMeters &&
+        y.legs.length <= x.legs.length &&
+        (y.arrivalMinutes < x.arrivalMinutes || y.walkMeters < x.walkMeters || y.legs.length < x.legs.length),
+    );
+  const ordenadas = todas
+    .filter((x) => !dominada(x))
+    .sort((a, b) => a.arrivalMinutes - b.arrivalMinutes || a.walkMeters - b.walkMeters);
   const elegidas = ordenadas.slice(0, o.maxResults);
   const directo = ordenadas.find((op) => op.legs.length === 1);
   if (directo && o.maxResults > 0 && !elegidas.includes(directo)) {
