@@ -1,4 +1,5 @@
 // Pruebas de la parte pura de geocodeTopup: elegir (o rechazar) el resultado de Nominatim.
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { LAT, LON } from '../src/validate';
 import { formatTopUpFile, geocodeQuery, pickResult, summarize } from '../src/geocodeTopup';
@@ -55,5 +56,17 @@ describe('formatTopUpFile', () => {
     const text = formatTopUpFile(file);
     expect(text).toContain('    { "name": "A", "address": "B", "zone": "centro", "lat": 36.6, "lon": -6.1 }\n');
     expect(JSON.parse(text)).toEqual(file);
+  });
+});
+
+describe('formatTopUpFile con el archivo real', () => {
+  it('reproduce topup-points.json byte a byte', () => {
+    const text = readFileSync(new URL('../topup-points.json', import.meta.url), 'utf8');
+    expect(formatTopUpFile(JSON.parse(text))).toBe(text);
+  });
+
+  it('no toca el texto de los valores (comillas, ":" o ",\"" dentro de un nombre)', () => {
+    const file = { source: 's', posterImage: 'p', checked: '2026-10-29', points: [{ name: 'A":x,"y', address: 'B', zone: 'centro' as const }] };
+    expect(JSON.parse(formatTopUpFile(file))).toEqual(file);
   });
 });

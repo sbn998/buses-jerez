@@ -49,7 +49,7 @@ export default function Recarga() {
     if (box && (box[0] !== box[2] || box[1] !== box[3])) return { bounds: box };
     return { center: [-6.1365, 36.6813] as [number, number], zoom: 12 };
   }, [mapPoints]);
-  // Con solo el recuadro de texto no se dibuja ningún círculo, así que sobra la leyenda.
+  // Estado del mapa: la leyenda del círculo hueco solo se enseña si el mapa no está en modo "unavailable" (solo recuadro de texto).
   const [mapStatus, setMapStatus] = useState<MapStatus>('loading');
 
   // Tocar un punto en el mapa: destaca su tarjeta y pide desplazarse hasta ella.

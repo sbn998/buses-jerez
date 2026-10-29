@@ -76,7 +76,8 @@ export function summarize(points: { lat?: number; lon?: number; approximate?: bo
 export function formatTopUpFile(file: TopUpFile): string {
   const { points, ...head } = file;
   const lines = Object.entries(head).map(([k, v]) => `  ${JSON.stringify(k)}: ${JSON.stringify(v)},`);
-  const rows = points.map((pt) => '    ' + JSON.stringify(pt).replace(/":/g, '": ').replace(/,"/g, ', "').replace(/^\{/, '{ ').replace(/\}$/, ' }'));
+  // Cada punto se escribe campo a campo, así el texto de los valores nunca se toca.
+  const rows = points.map((pt) => `    { ${Object.entries(pt).map(([k, v]) => `${JSON.stringify(k)}: ${JSON.stringify(v)}`).join(', ')} }`);
   return ['{', ...lines, '  "points": [', rows.join(',\n'), '  ]', '}', ''].join('\n');
 }
 
@@ -121,7 +122,7 @@ if (process.argv[1]?.endsWith('geocodeTopup.ts')) {
     }
     console.log(`${picked ? (picked.approximate ? 'aproximado' : 'exacto    ') : 'sin result.'}  ${point.name}`);
   }
-  writeFileSync(path, JSON.stringify(file, null, 2) + '\n');
+  writeFileSync(path, formatTopUpFile(file));
   const s = summarize(file.points);
   console.log(`Resumen: ${s.exact} exactos, ${s.approximate} aproximados, ${s.none} sin resultado`);
 }
