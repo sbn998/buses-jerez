@@ -309,6 +309,23 @@ describe('pantalla Cerca de mí', () => {
       expect(getRecorded().cameraCalls).toEqual([{ method: 'flyTo', args: [{ center: [0, 0.001], zoom: 15 }] }]);
     });
 
+    it('si el mapa cae al fondo liso, "Centrar en mí" se oculta para no tapar el botón Reintentar', async () => {
+      await renderScreen();
+      expect(screen.getByRole('button', { name: 'Centrar en mí' })).toBeTruthy();
+      await act(async () => failMapLoading());
+      expect(screen.getByText('Reintentar')).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Centrar en mí' })).toBeNull();
+    });
+
+    it('sin motor de mapas (unavailable) tampoco sale "Centrar en mí"', async () => {
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+      jest.spyOn(console, 'warn').mockImplementation(() => {});
+      breakMapRendering();
+      await renderScreen();
+      expect(screen.queryByRole('button', { name: 'Centrar en mí' })).toBeNull();
+      jest.restoreAllMocks();
+    });
+
     it('sin ubicación (permiso denegado) no hay botón "Centrar en mí" y nada se rompe', async () => {
       mockLocation = { status: 'denied', coords: null, retry: jest.fn() };
       await renderScreen();

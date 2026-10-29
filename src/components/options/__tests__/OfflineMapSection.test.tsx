@@ -13,7 +13,7 @@ beforeAll(() => {
 
 afterEach(() => {
   setOfflineFs(null);
-  useOfflineMap.setState({ status: { downloaded: false, bytes: 0 } });
+  useOfflineMap.setState({ status: { downloaded: false, bytes: 0 }, downloading: null, error: false });
 });
 
 describe('OfflineMapSection', () => {
@@ -73,5 +73,29 @@ describe('OfflineMapSection', () => {
     await fireEvent.press(screen.getByText('Reintentar'));
     // La segunda vez el disco falso ya no falla (solo falla la descarga número 1).
     await waitFor(() => expect(screen.getByText('Borrar')).toBeTruthy());
+  });
+
+  it('al salir de Opciones y volver con la descarga en marcha, sigue mostrando el progreso real', async () => {
+    const { fs, urls } = createFakeFs();
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const original = fs.download;
+    fs.download = async (url, path) => {
+      if (urls.length === 2) await gate;
+      await original(url, path);
+    };
+    setOfflineFs(fs);
+    const first = await render(<OfflineMapSection />);
+    void fireEvent.press(screen.getByText('Descargar mapa de Jerez (≈ 4 MB)'));
+    await waitFor(() => expect(screen.getByText('Descargando… 2 de 8')).toBeTruthy());
+    await first.unmount();
+    await render(<OfflineMapSection />);
+    expect(screen.getByText('Descargando… 2 de 8')).toBeTruthy();
+    expect(screen.queryByText('Descargar mapa de Jerez (≈ 4 MB)')).toBeNull();
+    await act(async () => release());
+    await waitFor(() => expect(screen.getByText('Borrar')).toBeTruthy());
+    expect(urls).toHaveLength(8);
   });
 });

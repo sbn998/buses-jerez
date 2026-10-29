@@ -12,7 +12,7 @@ import { FAKE_BASE, createFakeFs } from '../testing/fakeOfflineFs';
 
 afterEach(() => {
   setOfflineFs(null);
-  useOfflineMap.setState({ status: { downloaded: false, bytes: 0 } });
+  useOfflineMap.setState({ status: { downloaded: false, bytes: 0 }, downloading: null, error: false });
 });
 
 describe('offlineMap', () => {
@@ -87,5 +87,51 @@ describe('offlineMap', () => {
     await deleteOfflineMap();
     expect(useOfflineMap.getState().status.downloaded).toBe(false);
     expect(await readLocalStyle()).toBeNull();
+  });
+
+  it('dos descargas seguidas comparten una sola serie de descargas', async () => {
+    const { fs, urls } = createFakeFs();
+    setOfflineFs(fs);
+    const first = downloadOfflineMap(() => {});
+    const second = downloadOfflineMap(() => {});
+    expect(second).toBe(first);
+    await Promise.all([first, second]);
+    expect(urls).toHaveLength(2 + FONT_FILES.length);
+    expect((await getOfflineStatus()).downloaded).toBe(true);
+    // Terminada la primera, se puede lanzar otra nueva.
+    await downloadOfflineMap(() => {});
+    expect(urls).toHaveLength(2 * (2 + FONT_FILES.length));
+  });
+
+  it('el progreso y el error se guardan en el store', async () => {
+    const { fs } = createFakeFs({ failOnDownload: 3 });
+    setOfflineFs(fs);
+    const running = downloadOfflineMap(() => {});
+    expect(useOfflineMap.getState().downloading).not.toBeNull();
+    await expect(running).rejects.toThrow('sin red');
+    expect(useOfflineMap.getState().downloading).toBeNull();
+    expect(useOfflineMap.getState().error).toBe(true);
+    // Un nuevo intento limpia el error.
+    const retry = downloadOfflineMap(() => {});
+    expect(useOfflineMap.getState().error).toBe(false);
+    await retry;
+  });
+
+  it('no se puede borrar mientras se descarga', async () => {
+    const { fs, files } = createFakeFs();
+    setOfflineFs(fs);
+    const running = downloadOfflineMap(() => {});
+    await deleteOfflineMap();
+    await running;
+    expect(files.has('map/manifest.json')).toBe(true);
+    expect((await getOfflineStatus()).downloaded).toBe(true);
+  });
+
+  it('si las teselas pesan menos de 512 KB (p. ej. una página de error), la descarga falla y se limpia', async () => {
+    const { fs, files } = createFakeFs({ tilesBytes: 1000 });
+    setOfflineFs(fs);
+    await expect(downloadOfflineMap(() => {})).rejects.toThrow(/jerez\.pmtiles/);
+    expect([...files.keys()].filter((k) => k.startsWith('map'))).toEqual([]);
+    expect((await getOfflineStatus()).downloaded).toBe(false);
   });
 });

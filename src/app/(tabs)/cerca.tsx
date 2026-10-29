@@ -93,15 +93,18 @@ export default function Cerca() {
               onStatusChange={setMapStatus}
               recenterKey={recenterKey}
             />
-            {/* Solo hay botón si hay posición: sin ubicación no hay a dónde centrar. */}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('nearby.recenter')}
-              onPress={() => setRecenterKey((k) => k + 1)}
-              style={[styles.recenter, { backgroundColor: theme.backgroundElement }]}
-            >
-              <ThemedText type="small">{t('nearby.recenter')}</ThemedText>
-            </Pressable>
+            {/* Solo hay botón si hay posición (sin ubicación no hay a dónde centrar) y el mapa está cargando
+                o cargado: con el aviso del fondo liso taparía su botón "Reintentar", y sin mapa no sirve. */}
+            {mapStatus === 'loading' || mapStatus === 'ready' ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('nearby.recenter')}
+                onPress={() => setRecenterKey((k) => k + 1)}
+                style={[styles.recenter, { backgroundColor: theme.backgroundElement }]}
+              >
+                <ThemedText type="small">{t('nearby.recenter')}</ThemedText>
+              </Pressable>
+            ) : null}
             {hasApproximate && mapStatus !== 'unavailable' ? (
               <ThemedText type="small" themeColor="textSecondary">
                 {t('nearby.approxLegend')}

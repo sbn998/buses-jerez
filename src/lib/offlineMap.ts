@@ -29,6 +29,10 @@ const MANIFEST = 'manifest.json';
 const STYLE_FILE = 'style.json';
 const TILES_FILE = 'jerez.pmtiles';
 
+// Tamaño mínimo (512 KB) que debe tener el archivo de teselas. Si la descarga "funciona" pero devuelve
+// una página de error pequeña (por ejemplo un 404 de GitHub Pages), no la damos por buena.
+const MIN_TILES_BYTES = 512 * 1024;
+
 /** Lo que necesitamos del sistema de archivos. Las rutas son relativas a la carpeta de datos de la app. */
 export interface OfflineFs {
   /** Dirección (URI) de la carpeta de datos de la app, sin barra final. */
@@ -119,21 +123,55 @@ export async function getOfflineStatus(): Promise<OfflineStatus> {
 }
 
 // Store con el estado actual del mapa descargado. `refresh` vuelve a mirar el disco.
+// `downloading` (progreso) y `error` viven aquí, y no en la pantalla, para que Opciones
+// muestre la descarga real aunque se salga de la pantalla y se vuelva a entrar.
 type OfflineMapState = {
   status: OfflineStatus;
+  /** Progreso de la descarga en marcha, o null si no hay ninguna. */
+  downloading: { done: number; total: number } | null;
+  /** true si la última descarga falló. */
+  error: boolean;
   refresh: () => Promise<void>;
 };
 export const useOfflineMap = create<OfflineMapState>()((set) => ({
   status: NOT_DOWNLOADED,
+  downloading: null,
+  error: false,
   refresh: async () => set({ status: await getOfflineStatus() }),
 }));
 
+// Descarga en marcha (si la hay). Sirve para que una segunda petición no pise la primera.
+let inFlight: Promise<void> | null = null;
+
 /**
- * Descarga el mapa entero. Todo va a una carpeta temporal y solo al final se le cambia el nombre a `map/`,
+ * Descarga el mapa entero. Si ya hay una descarga en marcha, devuelve esa misma (no empieza otra):
+ * dos descargas a la vez compartirían la carpeta temporal y se estropearían entre sí.
+ * El progreso y el error se apuntan también en el store. Todo va a una carpeta temporal y solo al final se le cambia el nombre a `map/`,
  * de una vez: si algo falla (o la app se cierra), nunca queda un mapa a medias. Si falla, borra lo
  * descargado y relanza el error.
  */
-export async function downloadOfflineMap(onProgress: (done: number, total: number) => void): Promise<void> {
+export function downloadOfflineMap(onProgress: (done: number, total: number) => void = () => {}): Promise<void> {
+  if (inFlight) return inFlight;
+  useOfflineMap.setState({ downloading: { done: 0, total: 0 }, error: false });
+  inFlight = runDownload((done, total) => {
+    useOfflineMap.setState({ downloading: { done, total } });
+    onProgress(done, total);
+  })
+    .then(
+      () => useOfflineMap.setState({ downloading: null }),
+      (error) => {
+        useOfflineMap.setState({ downloading: null, error: true });
+        throw error;
+      },
+    )
+    .finally(() => {
+      inFlight = null;
+    });
+  return inFlight;
+}
+
+// La descarga en sí; downloadOfflineMap se encarga de que solo haya una a la vez.
+async function runDownload(onProgress: (done: number, total: number) => void): Promise<void> {
   const f = fs();
   // Archivos a bajar: [ruta en el móvil, dirección en la web].
   const jobs: [string, string][] = [
@@ -165,6 +203,7 @@ export async function downloadOfflineMap(onProgress: (done: number, total: numbe
     const files = jobs.map(([path]) => {
       const bytes = f.size(`${TMP_DIR}/${path}`);
       if (bytes === null || bytes <= 0) throw new Error(`Descarga incompleta: ${path}`);
+      if (path === TILES_FILE && bytes < MIN_TILES_BYTES) throw new Error(`Descarga incompleta: ${path} es demasiado pequeño`);
       return { path, bytes };
     });
     await f.writeText(`${TMP_DIR}/${MANIFEST}`, JSON.stringify({ files } satisfies Manifest));
@@ -183,8 +222,9 @@ export async function downloadOfflineMap(onProgress: (done: number, total: numbe
   }
 }
 
-/** Borra el mapa descargado; el mapa vuelve al remoto. */
+/** Borra el mapa descargado; el mapa vuelve al remoto. No hace nada mientras se está descargando. */
 export async function deleteOfflineMap(): Promise<void> {
+  if (inFlight) return;
   try {
     fs().rmdir(MAP_DIR);
     fs().rmdir(TMP_DIR);

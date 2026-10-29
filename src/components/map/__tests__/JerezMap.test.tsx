@@ -23,7 +23,7 @@ beforeEach(() => {
 
 afterEach(() => {
   setOfflineFs(null);
-  useOfflineMap.setState({ status: { downloaded: false, bytes: 0 } });
+  useOfflineMap.setState({ status: { downloaded: false, bytes: 0 }, downloading: null, error: false });
   jest.useRealTimers();
   jest.restoreAllMocks();
 });
@@ -244,6 +244,47 @@ describe('JerezMap con el mapa sin conexión', () => {
     await act(async () => failMapLoading());
     expect(getRecorded().map.mapStyle.layers[0].type).toBe('background');
     expect(getRecorded().map.mapStyle.glyphs).toBeUndefined();
+  });
+
+  it('si el fallo llega antes de leer el estilo local, al llegar este se reintenta con él y no queda el fondo liso', async () => {
+    const { fs } = createFakeFs();
+    setOfflineFs(fs);
+    await downloadOfflineMap(() => {});
+    // Frenamos la lectura del estilo local para que el fallo del remoto llegue antes.
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const originalRead = fs.readText;
+    fs.readText = async (path) => {
+      if (path === 'map/style.json') await gate;
+      return originalRead(path);
+    };
+    await render(<JerezMap height={200} />);
+    expect(getRecorded().map.mapStyle).toBe(MAP_STYLE_URL);
+    await act(async () => failMapLoading());
+    expect(screen.getByText('Mapa no disponible ahora mismo')).toBeTruthy();
+    await act(async () => release());
+    await waitFor(() => expect(screen.queryByText('Mapa no disponible ahora mismo')).toBeNull());
+    expect(getRecorded().map.mapStyle.glyphs).toBe('file:///doc/map/fonts/{fontstack}/{range}.pbf');
+  });
+
+  it('con el mapa ya cargado, si se borra la descarga se reintenta con el remoto (y puede caer al fondo liso)', async () => {
+    setOfflineFs(createFakeFs().fs);
+    await downloadOfflineMap(() => {});
+    const onStatusChange = jest.fn();
+    await render(<JerezMap height={200} onStatusChange={onStatusChange} />);
+    await waitFor(() => expect(typeof getRecorded().map.mapStyle).toBe('object'));
+    await act(async () => finishStyleLoading());
+    expect(onStatusChange).toHaveBeenLastCalledWith('ready');
+    await act(async () => {
+      await deleteOfflineMap();
+    });
+    await waitFor(() => expect(getRecorded().map.mapStyle).toBe(MAP_STYLE_URL));
+    expect(onStatusChange).toHaveBeenLastCalledWith('loading');
+    // Sin red: ahora el fallo del remoto sí se tiene en cuenta y sale el aviso con Reintentar.
+    await act(async () => failMapLoading());
+    expect(screen.getByText('Reintentar')).toBeTruthy();
   });
 
   describe('recenterKey', () => {

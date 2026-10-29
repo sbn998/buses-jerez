@@ -1,41 +1,34 @@
 // Bloque "Mapa sin conexión" de Opciones: descargar el mapa de Jerez al móvil, ver el progreso,
 // borrarlo y reintentar si la descarga falla. Si no se descarga, el mapa sigue funcionando con la red.
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { OFFLINE_MAP_APPROX_MB, deleteOfflineMap, downloadOfflineMap, useOfflineMap } from '@/lib/offlineMap';
 
-// Fase de la descarga que se está haciendo desde esta pantalla.
-type Phase = { kind: 'idle' } | { kind: 'downloading'; done: number; total: number } | { kind: 'error' };
-
 export function OfflineMapSection() {
   const { t } = useTranslation();
   const status = useOfflineMap((s) => s.status);
+  // Progreso y error vienen del store: así, al volver a Opciones con la descarga en marcha, se ve el progreso real.
+  const downloading = useOfflineMap((s) => s.downloading);
+  const error = useOfflineMap((s) => s.error);
   const refresh = useOfflineMap((s) => s.refresh);
-  const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
 
   // Al abrir Opciones miramos qué hay realmente en el disco.
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
-  // Lanza la descarga y apunta el progreso; si falla, pasa al estado de error.
-  async function start() {
-    setPhase({ kind: 'downloading', done: 0, total: 0 });
-    try {
-      await downloadOfflineMap((done, total) => setPhase({ kind: 'downloading', done, total }));
-      setPhase({ kind: 'idle' });
-    } catch {
-      setPhase({ kind: 'error' });
-    }
+  // Lanza la descarga (si ya hay una en marcha, se reutiliza). El fallo queda apuntado en el store.
+  function start() {
+    downloadOfflineMap().catch(() => {});
   }
 
-  if (phase.kind === 'downloading') {
-    return <ThemedText>{t('options.mapDownloading', { done: phase.done, total: phase.total })}</ThemedText>;
+  if (downloading) {
+    return <ThemedText>{t('options.mapDownloading', { done: downloading.done, total: downloading.total })}</ThemedText>;
   }
-  if (phase.kind === 'error') {
+  if (error) {
     return (
       <View style={styles.row}>
         <ThemedText>{t('options.mapError')}</ThemedText>

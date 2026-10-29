@@ -180,6 +180,12 @@ function MapContent({
   const handleFailed = useCallback(() => setPhase((p) => (p === 'loading' ? 'fallback' : p)), []);
   const retry = useCallback(() => setPhase('loading'), []);
 
+  // Cuando cambia el estilo que se usa (llega el local tras leerlo del disco, o se borra y vuelve el remoto)
+  // empezamos de cero: un fallo o un 'ready' del estilo anterior no vale para el nuevo, y el reloj de 8 s se reinicia.
+  useEffect(() => {
+    setPhase('loading');
+  }, [localStyle]);
+
   // Al volver a la app desde segundo plano con el fondo liso, lo reintentamos.
   useEffect(() => {
     if (phase !== 'fallback') return;
