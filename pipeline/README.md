@@ -77,7 +77,7 @@ tilemaker v3.2.0 no publica programas para Linux y su imagen de Docker solo exis
 ```bash
 sudo apt-get install -y build-essential libboost-dev libboost-filesystem-dev \
   libboost-program-options-dev libboost-system-dev lua5.3 liblua5.3-dev \
-  libshp-dev libsqlite3-dev rapidjson-dev
+  libshp-dev libsqlite3-dev rapidjson-dev zlib1g-dev libboost-iostreams-dev
 git clone --depth 1 --branch v3.2.0 https://github.com/systemed/tilemaker.git tilemaker-src
 make -C tilemaker-src -j"$(nproc)"
 # La configuración incluida pide archivos de costa y glaciares que no descargamos: se quitan esas 4 capas.

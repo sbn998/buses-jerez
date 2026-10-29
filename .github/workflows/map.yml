@@ -41,12 +41,14 @@ jobs:
       # Docker oficial solo existe como ":master" (no se puede fijar a una versión).
       # Lo más fiable y repetible es compilar el código de la etiqueta v3.2.0 con las
       # dependencias que indica su documentación (docs/INSTALL.md, apartado Ubuntu).
+      # (zlib1g-dev y libboost-iostreams-dev no los pide el Makefile de v3.2.0, que lleva
+      # su propia zlib; se instalan por si acaso, no molestan.)
       # Tarda unos minutos, que no importa para un proceso mensual.
       - name: Compilar tilemaker
         run: |
           sudo apt-get install -y build-essential libboost-dev libboost-filesystem-dev \
             libboost-program-options-dev libboost-system-dev lua5.3 liblua5.3-dev \
-            libshp-dev libsqlite3-dev rapidjson-dev
+            libshp-dev libsqlite3-dev rapidjson-dev zlib1g-dev libboost-iostreams-dev
           git clone --depth 1 --branch "$TILEMAKER_VERSION" https://github.com/systemed/tilemaker.git tilemaker-src
           make -C tilemaker-src -j"$(nproc)"
 

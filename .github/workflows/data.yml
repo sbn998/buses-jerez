@@ -40,18 +40,36 @@ jobs:
       - run: npm test
       - run: npm run build-data
       # Trae el mapa del Release "mapa" (lo genera map.yml una vez al mes) y lo deja en
-      # out/map/. Si el Release todavía no existe, avisa y publica los horarios sin mapa.
+      # out/map/. La descarga se reintenta 3 veces por si GitHub falla un momento. Si aun
+      # así algo falla (no hay Release, zip roto...), avisa con la causa real y publica los
+      # horarios sin mapa: el mapa nunca debe impedir publicar los horarios.
       - name: Traer el mapa
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release download mapa --repo "$GITHUB_REPOSITORY" -D out/map --pattern '*'; then
-            unzip -q out/map/fonts.zip -d out/map/fonts
-            rm out/map/fonts.zip
-            npm run write-style
+          download() {
+            for attempt in 1 2 3; do
+              rm -rf out/map
+              if gh release download mapa --repo "$GITHUB_REPOSITORY" -D out/map --pattern '*' 2> map-error.txt; then
+                return 0
+              fi
+              echo "Intento $attempt de 3 fallido: $(cat map-error.txt)"
+              sleep 10
+            done
+            return 1
+          }
+          if download \
+            && unzip -q out/map/fonts.zip -d out/map/fonts \
+            && rm out/map/fonts.zip \
+            && npm run write-style \
+            && test -s out/map/jerez.pmtiles \
+            && test -s out/map/style.json; then
+            echo "Mapa listo en out/map/"
           else
+            cause="$(cat map-error.txt 2>/dev/null)"
             rm -rf out/map
-            echo "::warning::No hay Release 'mapa': se publica sin mapa. Lanza el proceso Mapa mensual a mano."
+            echo "::warning::No se ha podido preparar el mapa, se publica sin él. Causa de la descarga: ${cause:-sin error de descarga (fallo al descomprimir, al escribir el estilo o faltan archivos)}"
           fi
       - uses: actions/upload-pages-artifact@v3
         with:
