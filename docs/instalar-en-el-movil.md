@@ -44,7 +44,37 @@ Importante: la app de desarrollo carga su código desde el ordenador, así que n
 
 20. **Restaura la app de desarrollo:** vuelve a instalar el APK de desarrollo desde el enlace del paso 6 (o en https://expo.dev, tu proyecto, Builds, elige la compilación de tipo development). (5 min)
 
+## Parte 6: después de añadir el mapa
+
+Hazla solo una vez, cuando ya tengas la versión nueva del proyecto con el mapa. El mapa se publica en GitHub solo después de fusionar la rama y de que el workflow "Mapa mensual" (pestaña Actions de GitHub) se haya ejecutado al menos una vez.
+
+21. **Comprueba que el mapa está publicado:** abre https://sbn998.github.io/buses-jerez/map/style.json en el navegador. Debe verse un texto que empieza por `{`. Si sale error 404, el mapa aún no está publicado: espera a que "Mapa mensual" termine y repite este paso. (2 min)
+22. **Vuelve a compilar la app de desarrollo**, porque MapLibre es un módulo nativo y la app anterior no lo incluye. Usa `npx eas-cli build --profile development --platform android`. Espera entre 15 y 25 min; en la cuenta gratuita puede haber cola. (20 min de espera)
+23. **Copia el enlace al nuevo APK** que aparece al terminar, o búscalo en https://expo.dev, apartado Builds. (1 min)
+24. **Instala el nuevo APK** en el móvil: abre el enlace, descárgalo y pulsa "Instalar" (si pregunta, pulsa "Actualizar"). (5 min)
+25. **En el ordenador, arranca el servidor** con `npx expo start` y abre la app "Buses Jerez" en el móvil, como en el paso 11. (2 min)
+
+**Comprobación 1: con conexión**
+
+26. **Cerca de mí:** abre la pestaña Cerca de mí. Se ve el mapa y el texto "© OpenStreetMap". (2 min)
+27. **Detalle de una línea:** elige una línea (por ejemplo la 1) y abre su detalle. Se ve el mapa con "© OpenStreetMap". (2 min)
+
+Si el mapa no aparece con conexión, abre el enlace del paso 21 en el navegador. Si abre, avisa del fallo tal cual y no busques atajos.
+
+**Comprobación 2: sin conexión**
+
+Esta prueba necesita la versión de prueba (Parte 5), porque la app de desarrollo necesita el ordenador.
+
+28. **Vuelve a compilar la versión de prueba** con el mismo comando del paso 15 de la Parte 5, `npx eas-cli build --profile preview --platform android`. También necesita el módulo nativo. (Esperar entre 15 y 25 min.)
+29. **Instala el APK de prueba** con el enlace nuevo, como en el paso 16 de la Parte 5. Reemplaza la app de desarrollo. (5 min)
+30. **Ábrela una vez con conexión** y espera a que carguen los horarios y el mapa. (2 min)
+31. **Activa el modo avión, cierra la app por completo y vuelve a abrirla.** No arranques ningún servidor. (2 min)
+32. **Cerca de mí sin conexión:** debe salir el recuadro "Mapa no disponible sin conexión" en lugar del mapa, y la lista de paradas debe seguir funcionando. (2 min)
+33. **Detalle de una línea sin conexión:** debe salir el mismo recuadro, y la lista de paradas debe seguir funcionando. Si falla, avisa del fallo tal cual. (2 min)
+34. **Restaura la app de desarrollo:** instala el APK de desarrollo nuevo, con el enlace del paso 23 (o en https://expo.dev, tu proyecto, Builds, la compilación de tipo development). (5 min)
+
 ## Si algo falla
 
 - Si la compilación en la nube se niega por límite gratuito, la alternativa es `npx expo run:android`, que exige instalar antes Android Studio (con el SDK de Android) en el ordenador.
 - Si la app no encuentra el ordenador, revisa que ambos estén en la misma wifi, o prueba `npx expo start --tunnel`.
+- Si no aparece el mapa con conexión, comprueba que https://sbn998.github.io/buses-jerez/map/style.json abre en el navegador (paso 21). Si no abre, el mapa no está publicado todavía.
