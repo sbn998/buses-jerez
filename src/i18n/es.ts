@@ -36,6 +36,22 @@ const es = {
   common: {
     comingSoon: 'Próximamente',
   },
+  error: {
+    title: 'Algo ha fallado',
+    retry: 'Reintentar',
+  },
+  options: {
+    title: 'Opciones',
+    open: 'Abrir opciones',
+    language: 'Idioma',
+    langAuto: 'Automático',
+    langEs: 'Español',
+    langEn: 'English',
+    data: 'Datos',
+    source: 'Datos oficiales de Comujesa',
+    offlineMap: 'Mapa sin conexión',
+    mapSoon: 'Disponible pronto',
+  },
 };
 
 export default es;

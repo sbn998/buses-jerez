@@ -3,12 +3,15 @@ import { DarkTheme, DefaultTheme, ThemeProvider, Stack } from 'expo-router';
 import { getLocales } from 'expo-localization';
 import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { DataProvider } from '@/data/DataProvider';
 import i18n, { initI18n, resolveLanguage } from '@/i18n';
 import { useSettings } from '@/stores/settings';
 
 export default function RootLayout() {
+  const { t } = useTranslation();
   const colorScheme = useColorScheme();
   const language = useSettings((s) => s.language);
   // Idioma final según el ajuste elegido y el idioma del móvil.
@@ -22,7 +25,12 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <DataProvider>
-        <Stack screenOptions={{ headerShown: false }} />
+        <ErrorBoundary>
+          <Stack screenOptions={{ headerShown: false }}>
+            {/* Opciones es la única pantalla con cabecera propia (con botón de volver). */}
+            <Stack.Screen name="opciones" options={{ headerShown: true, title: t('options.title') }} />
+          </Stack>
+        </ErrorBoundary>
       </DataProvider>
     </ThemeProvider>
   );

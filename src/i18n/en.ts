@@ -41,6 +41,22 @@ const en: Textos = {
   common: {
     comingSoon: 'Coming soon',
   },
+  error: {
+    title: 'Something went wrong',
+    retry: 'Try again',
+  },
+  options: {
+    title: 'Options',
+    open: 'Open options',
+    language: 'Language',
+    langAuto: 'Automatic',
+    langEs: 'Español',
+    langEn: 'English',
+    data: 'Data',
+    source: 'Official data from Comujesa',
+    offlineMap: 'Offline map',
+    mapSoon: 'Coming soon',
+  },
 };
 
 export default en;
