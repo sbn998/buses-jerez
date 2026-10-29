@@ -57,8 +57,10 @@ jobs:
         # glaciares que no descargamos (ocean, urban_areas, ice_shelf y glacier); con jq
         # las quitamos. El resto del mapa (calles, edificios, parques, agua...) sale de
         # OpenStreetMap. maxzoom 14: MapLibre amplía esas teselas hasta el zoom 16 o más.
+        # bounding_box: los límites de Jerez. Se guardan en la cabecera del archivo; sin
+        # ellos la cabecera dice 0,0,0,0 y MapLibre podría no pedir ninguna tesela.
         run: |
-          jq 'del(.layers.ocean, .layers.urban_areas, .layers.ice_shelf, .layers.glacier) | .settings.maxzoom = 14' \
+          jq 'del(.layers.ocean, .layers.urban_areas, .layers.ice_shelf, .layers.glacier) | .settings.maxzoom = 14 | .settings.bounding_box = [-6.35, 36.55, -5.85, 36.85]' \
             tilemaker-src/resources/config-openmaptiles.json > config.json
           ./tilemaker-src/tilemaker \
             --input jerez.osm.pbf \
