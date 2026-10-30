@@ -45,6 +45,7 @@ web-build/
 out/
 expo-env.d.ts
 *.tsbuildinfo
+*.traineddata
 *.log
 .DS_Store
 Thumbs.db

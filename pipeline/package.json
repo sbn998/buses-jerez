@@ -8,11 +8,14 @@
     "check-holidays": "tsx src/checkHolidays.ts",
     "check-topup": "tsx src/checkTopUp.ts",
     "geocode-topup": "tsx src/geocodeTopup.ts",
-    "write-style": "tsx src/map/writeStyle.ts"
+    "write-style": "tsx src/map/writeStyle.ts",
+    "ocr-fixture": "tsx src/pdf/makeOcrFixture.ts"
   },
   "dependencies": {
     "cheerio": "^1.2.0",
-    "fast-xml-parser": "^5.11.2"
+    "fast-xml-parser": "^5.11.2",
+    "sharp": "^0.34.5",
+    "tesseract.js": "^6.0.1"
   },
   "devDependencies": {
     "@maplibre/maplibre-gl-style-spec": "^26.5.0",
