@@ -15,7 +15,7 @@ export interface WalkRequest {
 export const MAX_POINTS = 10;
 
 // Caja que rodea Jerez de la Frontera: fuera de ella no se calcula nada.
-const BOUNDS = { minLon: -6.4, maxLon: -5.8, minLat: 36.5, maxLat: 36.9 };
+const BOUNDS = { minLon: -6.35, minLat: 36.55, maxLon: -5.85, maxLat: 36.85 };
 
 // Comprueba que algo es una pareja [lon, lat] válida y dentro de Jerez.
 function isLonLat(v: unknown): v is LonLat {
@@ -48,7 +48,7 @@ export function validateRequest(body: unknown): WalkRequest | null {
 // para que paradas y búsquedas muy cercanas compartan resultado.
 export function cacheKey(direction: Direction, origin: LonLat, point: LonLat): string {
   const fmt = (p: LonLat) => `${p[0].toFixed(4)},${p[1].toFixed(4)}`;
-  return `https://cache.local/walk/v1/${direction}/${fmt(origin)}/${fmt(point)}`;
+  return `walk/v1/${direction}/${fmt(origin)}/${fmt(point)}`;
 }
 
 // Cuerpo de la petición a OpenRouteService solo con los puntos que faltan en caché.
