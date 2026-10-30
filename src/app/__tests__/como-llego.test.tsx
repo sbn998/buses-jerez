@@ -350,6 +350,65 @@ describe('pantalla Cómo llego', () => {
       expect(mockWalks).toHaveBeenCalledTimes(4);
     });
 
+    it('dos movimientos de 30 m (60 m desde la última petición) sí vuelven a pedir', async () => {
+      const view = await renderScreen();
+      await pickDestination(lejos);
+      expect(mockWalks).toHaveBeenCalledTimes(2);
+      const rerenderAt = (metros: number) => {
+        mockLocation = { ...mockLocation, coords: { lat: 36.68 + metros / 111_195, lon: -6.13 } };
+        return view.rerender(
+          <DataProvider value={{ data: screenData, source: 'bundled', checkedAt: null }}>
+            <ComoLlego />
+          </DataProvider>,
+        );
+      };
+      await rerenderAt(30);
+      expect(mockWalks).toHaveBeenCalledTimes(2);
+      await rerenderAt(60); // solo 30 m desde el render anterior, pero 60 m desde la petición
+      expect(mockWalks).toHaveBeenCalledTimes(4);
+    });
+
+    it('quitar el destino borra las distancias reales y al elegir otro vuelven las estimaciones', async () => {
+      mockWalks.mockImplementation(realWalks);
+      await renderScreen();
+      await pickDestination(lejos);
+      await screen.findAllByText('Distancias a pie por calles');
+      await fireEvent.press(screen.getByRole('button', { name: 'Cambiar destino' }));
+      expect(screen.queryAllByTestId(/^route-option-/)).toHaveLength(0);
+      mockWalks.mockResolvedValue(null);
+      await pickDestination(lejos);
+      expect(mockWalks).toHaveBeenCalledTimes(4);
+      expect(screen.getAllByText('Distancias aproximadas')).toHaveLength(2);
+      expect(screen.queryByText('Distancias a pie por calles')).toBeNull();
+    });
+
+    it('cambiar el origen elegido vuelve a pedir y borra las distancias del origen anterior', async () => {
+      mockWalks.mockImplementation(realWalks);
+      await renderScreen();
+      await pickDestination(lejos);
+      await screen.findAllByText('Distancias a pie por calles');
+      expect(mockWalks).toHaveBeenCalledTimes(2);
+      mockWalks.mockResolvedValue(null);
+      await fireEvent.press(screen.getByRole('button', { name: 'Cambiar origen' }));
+      mockSearch.mockResolvedValue([luz]);
+      await search('Luz');
+      await fireEvent.press(await screen.findByRole('button', { name: 'Calle Luz, Centro' }));
+      expect(mockWalks).toHaveBeenCalledTimes(4);
+      expect(screen.getAllByText('Distancias aproximadas')).toHaveLength(2);
+    });
+
+    it('una respuesta que llega después de desmontar la pantalla no avisa ni cambia nada', async () => {
+      const errores = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const late: ((v: Record<string, number>) => void)[] = [];
+      mockWalks.mockImplementation(() => new Promise((r) => late.push(r)));
+      const view = await renderScreen();
+      await pickDestination(lejos);
+      expect(late).toHaveLength(2);
+      await view.unmount();
+      await act(async () => late.forEach((r) => r({ A: 10, D1: 10, D2: 10 })));
+      expect(errores).not.toHaveBeenCalled();
+    });
+
     it('por defecto va ordenado por Más rápido; Menos andar reordena las tarjetas', async () => {
       await renderScreen();
       await pickDestination(lejos);
