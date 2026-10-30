@@ -22,8 +22,16 @@ export interface OcrPage {
   words: OcrWord[];
 }
 
-/** Cuánto se amplía la imagen antes de leerla (sin ampliar se pierden las horas marcadas). */
-const SCALE = 3;
+/** Ampliación máxima (sin ampliar se pierden las horas marcadas). */
+const MAX_SCALE = 3;
+
+/** Tamaño máximo de la imagen ampliada (40 megapíxeles): más grande, el OCR se queda sin memoria. */
+export const MAX_OCR_PIXELS = 40_000_000;
+
+/** Cuánto ampliar una imagen: ×3, o menos si pasaría de 40 megapíxeles. */
+export function ocrScale(width: number, height: number): number {
+  return Math.min(MAX_SCALE, Math.sqrt(MAX_OCR_PIXELS / (width * height)));
+}
 
 /**
  * Crea un lector que se puede reutilizar para varios PDF (arrancar tesseract es lento).
@@ -43,7 +51,7 @@ export async function createOcr(): Promise<{
     async read(jpeg) {
       const meta = await sharp(jpeg).metadata();
       const png = await sharp(jpeg)
-        .resize(Math.round((meta.width ?? 0) * SCALE))
+        .resize(Math.round((meta.width ?? 0) * ocrScale(meta.width ?? 1, meta.height ?? 1)))
         .grayscale()
         .normalise()
         .png()
