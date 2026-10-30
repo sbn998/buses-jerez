@@ -59,6 +59,15 @@ describe('fetchWalks', () => {
     expect(cuerpo.origin).toEqual([-6.13, 36.68]);
   });
 
+  it('manda store:false solo cuando se pide, y por defecto no manda store', async () => {
+    const { fetchWalks } = cargar('https://worker.test/walk');
+    const fetchFn = jest.fn().mockResolvedValue(respuesta(200, { meters: [1, 2, 3] }));
+    await fetchWalks(origen, paradas, 'from', fetchFn);
+    expect(JSON.parse(fetchFn.mock.calls[0][1].body)).not.toHaveProperty('store');
+    await fetchWalks(origen, paradas, 'from', fetchFn, 4000, { store: false });
+    expect(JSON.parse(fetchFn.mock.calls[1][1].body).store).toBe(false);
+  });
+
   it('da null si meters no tiene un valor por parada', async () => {
     const { fetchWalks } = cargar('https://worker.test/walk');
     const corto = jest.fn().mockResolvedValue(respuesta(200, { meters: [420] }));

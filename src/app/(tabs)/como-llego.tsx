@@ -19,7 +19,7 @@ import { useLocation } from '@/hooks/use-location';
 import { useNow } from '@/hooks/use-now';
 import { useTheme } from '@/hooks/use-theme';
 import { distanceMeters } from '@/lib/geo';
-import { boundsOf } from '@/lib/mapLayers';
+import { boundsOf, JEREZ_BOUNDS } from '@/lib/mapLayers';
 import { isOnline } from '@/lib/online';
 import type { Place } from '@/lib/placeSearch';
 import {
@@ -37,6 +37,12 @@ import { fetchWalks } from '@/lib/walking';
 type Connection = 'checking' | 'online' | 'offline';
 type Origin = { kind: 'me' } | { kind: 'place'; place: Place };
 
+// ¿Está el punto dentro de la caja de Jerez? Fuera de ella el Worker responde 400, así que ni se pregunta.
+function inJerez(p: LatLon): boolean {
+  const [west, south, east, north] = JEREZ_BOUNDS;
+  return p.lon >= west && p.lon <= east && p.lat >= south && p.lat <= north;
+}
+
 // Estados de ubicación en los que no hay posición y hay que pedir el origen escrito.
 const NO_POSITION = ['denied', 'blocked', 'unavailable', 'nosignal'];
 
@@ -44,6 +50,8 @@ const NO_POSITION = ['denied', 'blocked', 'unavailable', 'nosignal'];
 const WALK_INSTEAD_METERS = 400;
 // Si tu ubicación se mueve más de esto desde la última petición, se piden otra vez las distancias a pie.
 const REFETCH_METERS = 50;
+// Como mucho una petición por movimiento cada tanto (para no gastar la cuota diaria de ORS yendo en bus).
+const ORIGIN_REFETCH_MS = 60_000;
 // Alto del mapa de resultados.
 const MAP_HEIGHT = 220;
 
@@ -66,7 +74,10 @@ export default function ComoLlego() {
   // Número de la última petición de distancias a pie: las respuestas viejas se descartan.
   const walkId = useRef(0);
   // Qué se pidió la última vez (origen, punto de salida y destino), para no repetir peticiones.
-  const lastWalkRequest = useRef<{ key: string; from: LatLon; to: LatLon } | null>(null);
+  // `at` es la hora (en ms) de la última petición del lado del origen.
+  const lastWalkRequest = useRef<{ key: string; from: LatLon; to: LatLon; at: number } | null>(null);
+  // true mientras la petición completa (origen y destino) sigue sin respuesta.
+  const fullPending = useRef(false);
   // Distancias reales por calles, junto con el origen y el destino para los que se pidieron.
   const [walkState, setWalkState] = useState<{
     key: string;
@@ -129,26 +140,56 @@ export default function ComoLlego() {
   );
 
   // Pide las distancias reales andando a las paradas cercanas al origen y al destino.
-  // Solo se repite si cambia el destino o el origen, o si tu ubicación se mueve más de 50 m;
-  // el reloj de cada minuto no cuenta. Mientras llegan, se enseñan las estimaciones.
+  // - Si cambia el destino o el origen elegido: se piden las dos cosas al momento.
+  // - Si solo tu ubicación se mueve más de 50 m: se pide solo el lado del origen, y como mucho una vez
+  //   por minuto. Mientras llega, se siguen enseñando las distancias anteriores (sin parpadeos).
+  //   Si el movimiento llega antes de tiempo, se espera: el reloj de cada minuto vuelve a probar.
+  // Con tu ubicación (GPS) se pide con store:false para que el Worker no la guarde.
+  // Un punto fuera de Jerez no se pregunta (el Worker daría 400).
   useEffect(() => {
     if (!ready) {
       lastWalkRequest.current = null;
+      fullPending.current = false;
       walkId.current++;
       setWalkState(null);
       return;
     }
     const last = lastWalkRequest.current;
-    if (last && last.key === originKey && last.to === to && distanceMeters(last.from, from) <= REFETCH_METERS) return;
-    lastWalkRequest.current = { key: originKey, from, to };
+    const sameTrip = last !== null && last.key === originKey && last.to === to;
+    const store = originKey === 'me' ? { store: false } : {};
+    const fromWalks = () =>
+      inJerez(from) ? fetchWalks(from, candidateStops(data, from), 'from', undefined, undefined, store) : Promise.resolve(null);
+
+    if (sameTrip) {
+      // Mismo origen y destino: solo cuenta que tu ubicación se haya movido de verdad.
+      if (distanceMeters(last.from, from) <= REFETCH_METERS) return;
+      // Si la petición completa aún no ha vuelto, o es demasiado pronto, se prueba en el próximo minuto.
+      if (fullPending.current || Date.now() - last.at < ORIGIN_REFETCH_MS) return;
+      lastWalkRequest.current = { key: originKey, from, to, at: Date.now() };
+      const id = ++walkId.current;
+      fromWalks().then((fromOrigin) => {
+        if (id !== walkId.current) return;
+        // Se cambia solo el lado del origen; el del destino se conserva.
+        setWalkState((prev) => {
+          const toDestination = prev && prev.key === originKey && prev.to === to ? prev.walks.toDestination : undefined;
+          if (!fromOrigin && !toDestination) return null;
+          return { key: originKey, to, walks: { fromOrigin: fromOrigin ?? undefined, toDestination } };
+        });
+      });
+      return;
+    }
+
+    lastWalkRequest.current = { key: originKey, from, to, at: Date.now() };
+    fullPending.current = true;
     const id = ++walkId.current;
     setWalkState(null); // las distancias anteriores ya no valen
     Promise.all([
-      fetchWalks(from, candidateStops(data, from), 'from'),
-      fetchWalks(to, candidateStops(data, to), 'to'),
+      fromWalks(),
+      inJerez(to) ? fetchWalks(to, candidateStops(data, to), 'to') : Promise.resolve(null),
     ]).then(([fromOrigin, toDestination]) => {
       // Si mientras tanto cambió el destino o el origen, esta respuesta se ignora.
       if (id !== walkId.current) return;
+      fullPending.current = false;
       // Sin respuesta (null) se siguen usando las estimaciones, sin avisar de nada.
       if (!fromOrigin && !toDestination) return;
       setWalkState({
@@ -157,7 +198,8 @@ export default function ComoLlego() {
         walks: { fromOrigin: fromOrigin ?? undefined, toDestination: toDestination ?? undefined },
       });
     });
-  }, [ready, originKey, from, to, data]);
+    // `now` solo sirve para volver a probar cada minuto un movimiento que quedó pendiente.
+  }, [ready, originKey, from, to, data, now]);
 
   // Las distancias reales solo valen para el origen y el destino con los que se pidieron.
   const walks = useMemo(

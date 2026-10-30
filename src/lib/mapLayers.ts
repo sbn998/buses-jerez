@@ -8,6 +8,8 @@ import type { Stop } from '@/data/schema';
 export const MAP_STYLE_URL = 'https://sbn998.github.io/buses-jerez/map/style.json';
 
 // Caja de la zona del mapa: [lonMin, latMin, lonMax, latMax].
+// OJO: la usa también la app para no pedir rutas a pie fuera de Jerez, y debe coincidir con
+// BOUNDS de worker/src/walk.ts (el Worker rechaza lo que cae fuera de esta caja).
 export const JEREZ_BOUNDS: [number, number, number, number] = [-6.35, 36.55, -5.85, 36.85];
 
 // Convierte paradas en puntos GeoJSON. OJO: GeoJSON usa [lon, lat], al revés que "lat, lon".

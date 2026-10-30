@@ -15,6 +15,8 @@ const MAX_POINTS = 10;
 /**
  * Pide los metros andando entre `origin` y cada parada.
  * - 'from': del origen a la parada; 'to': de la parada al origen (el origen es el destino del viaje).
+ * - options.store === false: el Worker no guarda ni lee su caché para esta petición (se usa con la
+ *   ubicación GPS del usuario, que no debe quedar guardada).
  * Devuelve { códigoDeParada: metros }, sin las paradas que no tienen ruta, o null si algo falla.
  */
 export async function fetchWalks(
@@ -23,6 +25,7 @@ export async function fetchWalks(
   direction: 'from' | 'to',
   fetchFn: typeof fetch = fetch,
   timeoutMs = 4000,
+  options: { store?: boolean } = {},
 ): Promise<Record<string, number> | null> {
   if (!WALK_API_URL) return null;
   const sent = stops.slice(0, MAX_POINTS);
@@ -38,6 +41,8 @@ export async function fetchWalks(
         origin: [origin.lon, origin.lat],
         points: sent.map((s) => [s.lon, s.lat]),
         direction,
+        // Solo se manda cuando es false (por defecto el Worker guarda en caché).
+        ...(options.store === false ? { store: false } : {}),
       }),
       signal: controller.signal,
     });
