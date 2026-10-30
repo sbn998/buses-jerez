@@ -110,3 +110,44 @@ npm run ocr-fixture -- <url-del-pdf> <nombre>   # tarda unos 20 s; la primera ve
 ```
 
 Las pruebas normales no ejecutan el OCR. La prueba de humo sí, solo con `OCR_SMOKE=1 npx vitest run test/ocr.smoke.test.ts`.
+
+## Notas de viaje, caché del OCR y avisos
+
+Los PDF dicen cosas que el buscador de Comujesa no dice: por ejemplo que un autobús se retira antes del final ("a: Retirada en Moreno Mendoza"). `src/pdf/readPdfs.ts` lo lee en `npm run build-data`, después de reconstruir los viajes y antes de validar:
+
+1. Descubre los PDF en la página «Información útil» (si salen menos de 54, falla).
+2. Hace una petición `HEAD` a cada PDF y la compara con la caché (`out/ocr.json`, que se publica y se vuelve a descargar de `https://sbn998.github.io/buses-jerez/ocr.json`; 404 = vacía). Si `Last-Modified` y `Content-Length` coinciden, se reutiliza el resultado y no se descarga nada. Si el `HEAD` falla y hay caché, también se reutiliza (con un aviso).
+3. Los que han cambiado se descargan, se calcula su `sha256` y se leen con OCR (un solo worker para todos; la primera vez tarda unos 20-25 minutos, el día a día casi nada).
+4. `parsePage` saca las horas marcadas, la leyenda y las fechas; `buildNotes` agrupa las marcas por viaje y crea las notas (`Line.notes`). Una "Retirada en X" guarda en `endsAt` el código de la parada X y pone a `null` las horas del viaje posteriores a la última parada marcada.
+5. **Bloquea** la publicación si un PDF leído hoy tiene `unreadable` (leyenda o fechas sin resolver) o si una "Retirada en X" no coincide con exactamente una parada de la línea, o si los PDF no coinciden en las fechas de validez, o si la fecha de «Información útil» no es la del PDF. Las marcas dudosas descartadas, o que no están en ningún viaje, solo salen como avisos. Los PDF reutilizados de la caché ya se validaron el día que se leyeron.
+6. El periodo (`period`: nombre y fechas) va en `data.json` y la caché en `out/ocr.json` (el workflow `data.yml` ya publica toda la carpeta `out/`).
+
+Para probar en el ordenador sin repetir el OCR, `OCR_CACHE_FILE=ruta/ocr-local.json npm run build-data` lee y escribe la caché en ese archivo en vez de usar la publicada.
+
+### `ocr-manual.json`
+
+Si el OCR no entiende un PDF concreto, se puede escribir su resultado a mano en `pipeline/ocr-manual.json` (empieza como `{}`). Es un objeto con el nombre del archivo como clave y el mismo formato que una entrada de `ocr.json`:
+
+```json
+{
+  "LINEA_1_LAB.pdf": {
+    "file": "LINEA_1_LAB.pdf",
+    "lastModified": null,
+    "contentLength": null,
+    "sha256": "<huella del PDF descargado>",
+    "result": { "validFrom": "2026-09-07", "validTo": "2027-06-27", "periodName": "Invierno 2026/2027", "legend": [], "marks": [], "unreadable": [], "warnings": [] }
+  }
+}
+```
+
+Solo se usa si `sha256` coincide con el del PDF descargado: si Comujesa cambia el PDF, la entrada manual se ignora (con un aviso) y se vuelve a leer con OCR. Quítala cuando el análisis ya lo entienda.
+
+### `notices.json`
+
+Avisos escritos a mano (huelgas, desvíos...) que se copian a `data.json` (`notices`). Es una lista (empieza como `[]`):
+
+```json
+[{ "id": "huelga-2026-11", "from": "2026-11-03", "to": "2026-11-05", "es": "Huelga de autobuses.", "en": "Bus strike." }]
+```
+
+`from` y `to` son fechas `AAAA-MM-DD` reales con `from <= to`; `id`, `es` y `en` no pueden estar vacíos. Si algo no cumple, la validación bloquea la publicación.

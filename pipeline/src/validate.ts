@@ -126,7 +126,50 @@ export function validate(ds: Dataset, previous: Dataset | null): string[] {
     errors.push(`topUpChecked is not a valid YYYY-MM-DD date: "${ds.topUpChecked}"`);
   }
 
-  // 8. Comparación con la versión anterior.
+  // 8. Periodo de validez (si lo hay): fechas reales y el inicio no puede ser posterior al final.
+  if (ds.period) {
+    const { validFrom, validTo } = ds.period;
+    if (!isRealDate(validFrom) || !isRealDate(validTo)) {
+      errors.push(`period dates are not valid YYYY-MM-DD dates: "${validFrom}" "${validTo}"`);
+    } else if (validFrom > validTo) {
+      errors.push(`period validFrom ${validFrom} is after validTo ${validTo}`);
+    }
+    if (!ds.period.name?.trim()) errors.push('period has no name');
+  }
+
+  // 9. Notas de viaje (si las hay): cada hora marcada tiene que existir en el buscador de esa parada.
+  for (const line of ds.lines) {
+    for (const day of DAY_TYPES) {
+      for (const note of line.notes?.[day] ?? []) {
+        for (const [code, time] of Object.entries(note.times)) {
+          if (!line.timesByStop[code]?.[day].includes(time)) {
+            errors.push(`line ${line.id} ${day} note "${note.mark}": ${time} is not a time of stop ${code}`);
+          }
+        }
+        if (note.endsAt !== undefined && !line.stopCodes.includes(note.endsAt)) {
+          errors.push(`line ${line.id} ${day} note "${note.mark}": endsAt ${note.endsAt} is not a stop of the line`);
+        }
+      }
+    }
+  }
+
+  // 10. Avisos escritos a mano (si los hay): id, textos y fechas AAAA-MM-DD con from <= to.
+  if (ds.notices !== undefined) {
+    if (!Array.isArray(ds.notices)) errors.push('notices is not a list');
+    else {
+      ds.notices.forEach((n, i) => {
+        const where = `notice #${i}`;
+        for (const key of ['id', 'es', 'en'] as const) {
+          if (typeof n?.[key] !== 'string' || n[key].trim() === '') errors.push(`${where} has no ${key}`);
+        }
+        if (typeof n?.from !== 'string' || !isRealDate(n.from)) errors.push(`${where} has an invalid "from" date`);
+        else if (typeof n.to !== 'string' || !isRealDate(n.to)) errors.push(`${where} has an invalid "to" date`);
+        else if (n.from > n.to) errors.push(`${where} has from after to`);
+      });
+    }
+  }
+
+  // 11. Comparación con la versión anterior.
   if (previous) {
     const prevTimes = countTimes(previous);
     const nowTimes = countTimes(ds);

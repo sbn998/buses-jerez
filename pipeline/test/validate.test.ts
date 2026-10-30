@@ -155,4 +155,30 @@ describe('validate', () => {
     ds.topUpPoints = [{ name: "A", address: "B", zone: "centro" }];
     expect(validate(ds, null)).toEqual([]);
   });
+
+  it('rejects a period whose start is after its end', () => {
+    const ds = makeDataset();
+    ds.period = { name: 'Invierno 2026/2027', validFrom: '2027-06-27', validTo: '2026-09-07' };
+    expect(validate(ds, null).join()).toMatch(/period validFrom/);
+    ds.period = { name: 'Invierno 2026/2027', validFrom: '2026-09-07', validTo: '2027-06-27' };
+    expect(validate(ds, null)).toEqual([]);
+  });
+
+  it('rejects a trip note with a time that is not in the finder', () => {
+    const ds = makeDataset();
+    ds.lines[0].notes = { lab: [{ mark: 'a', text: 'Paso por X', times: { '101': '09:00' } }], sab: [], fes: [] };
+    expect(validate(ds, null)).toEqual([]);
+    ds.lines[0].notes.lab[0].times = { '101': '09:01' };
+    expect(validate(ds, null).join()).toMatch(/09:01 is not a time of stop 101/);
+  });
+
+  it('rejects invalid notices', () => {
+    const ds = makeDataset();
+    ds.notices = [{ id: 'huelga', from: '2026-11-01', to: '2026-11-03', es: 'Hola', en: 'Hi' }];
+    expect(validate(ds, null)).toEqual([]);
+    ds.notices = [{ id: 'huelga', from: '2026-11-05', to: '2026-11-03', es: 'Hola', en: 'Hi' }];
+    expect(validate(ds, null).join()).toMatch(/notice #0/);
+    ds.notices = [{ id: 'x', from: '1/11/2026', to: '2026-11-03', es: 'Hola', en: 'Hi' }];
+    expect(validate(ds, null).join()).toMatch(/invalid "from"/);
+  });
 });

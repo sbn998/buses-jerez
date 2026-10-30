@@ -8,15 +8,17 @@
  *  2. Descargar las paradas de OpenStreetMap (último recurso para ubicarlas),
  *     ensamblar líneas y paradas, y reconstruir los viajes de cada tipo de día.
  *  3. Añadir los festivos y los puntos de recarga.
- *  4. Descargar la versión publicada anterior y validar comparando con ella.
- *  5. Si todo está bien, escribir out/data.json y out/manifest.json. Si no,
- *     terminar con error (código 1) sin escribir nada publicable.
+ *  4. Leer los PDF oficiales (con OCR solo los que han cambiado): notas de viaje
+ *     ("Retirada en ...") y periodo de validez. Ver src/pdf/readPdfs.ts.
+ *  5. Descargar la versión publicada anterior y validar comparando con ella.
+ *  6. Si todo está bien, escribir out/data.json, out/manifest.json y out/ocr.json.
+ *     Si no, terminar con error (código 1) sin escribir nada publicable.
  */
-import { mkdirSync, readFileSync, rmSync, writeFileSync, appendFileSync } from 'node:fs';
-import type { Dataset, DayType, Line, StopTimes } from '../../src/data/schema';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync, appendFileSync } from 'node:fs';
+import type { Dataset, DayType, Line, Notice, StopTimes } from '../../src/data/schema';
 import { SCHEMA_VERSION } from '../../src/data/schema';
 import { assemble, type OsmStop, type Overrides, type RawLine } from './assemble';
-import { STOPS_URL, TIMES_URL, kmlUrl, linePageUrl } from './comujesa/endpoints';
+import { INFO_URL, STOPS_URL, TIMES_URL, kmlUrl, linePageUrl } from './comujesa/endpoints';
 import { parseKml } from './comujesa/parseKml';
 import { parseLinePage } from './comujesa/parseLinePage';
 import { parseStopOptions } from './comujesa/parseStops';
@@ -27,6 +29,9 @@ import { makeManifest } from './manifest';
 import { OVERPASS_QUERY, OVERPASS_URL, parseOverpass } from './osm';
 import { osmCrossCheck } from './osmCrossCheck';
 import { fetchPrevious } from './previous';
+import { fetchPreviousOcr, type OcrCacheFile } from './pdf/ocrCache';
+import { readPdfs } from './pdf/readPdfs';
+import { parsePdfSources, parseStartDate } from './pdf/sources';
 import { buildTrips } from './trips';
 import { cleanTimes } from './cleanTimes';
 import { loadTopUp, type TopUpFile } from './topup';
@@ -81,7 +86,7 @@ async function main() {
   warnings.push(...assembled.warnings);
   // Cruce con OpenStreetMap: solo avisos, nunca bloquea la publicación.
   warnings.push(...osmCrossCheck(assembled.stops, osmStops));
-  const lines: Line[] = assembled.lines.map((line) => ({
+  let lines: Line[] = assembled.lines.map((line) => ({
     ...line,
     trips: Object.fromEntries(
       DAY_TYPES.map((day) => [
@@ -108,6 +113,11 @@ async function main() {
   // Puntos de recarga: copiados a mano del cartel oficial (topup-points.json).
   const topUp = readJson<TopUpFile>('topup-points.json');
 
+  // PDF de horarios: notas de viaje y periodo de validez (lo lento es el OCR, y solo se hace si un PDF ha cambiado).
+  const pdfs = await readPdfStep(client, lines, assembled.stops);
+  lines = pdfs.lines;
+  warnings.push(...pdfs.warnings);
+
   const dataset: Dataset = {
     schemaVersion: SCHEMA_VERSION,
     generatedAt: new Date().toISOString(),
@@ -116,19 +126,54 @@ async function main() {
     holidays: holidays.holidays,
     topUpPoints: loadTopUp(topUp),
     topUpChecked: topUp.checked,
+    ...(pdfs.period ? { period: pdfs.period } : {}),
+    // Avisos escritos a mano; si el archivo no es una lista, validate() lo rechaza.
+    notices: readJson<Notice[]>('notices.json'),
   };
   const prev = await fetchPrevious();
   if (prev.ok && prev.previous === null) warnings.push('no previous dataset (first run)');
-  const errors = prev.ok ? validate(dataset, prev.previous) : [prev.error];
+  const errors = [...pdfs.errors, ...(prev.ok ? validate(dataset, prev.previous) : [prev.error])];
   report(dataset, warnings, errors);
+  console.log('Marcas leídas de los PDF por línea:', JSON.stringify(pdfs.marksByLine));
+  // Copia local opcional de la caché del OCR, para no repetir 20 minutos de OCR al probar en el ordenador.
+  if (process.env.OCR_CACHE_FILE) writeFileSync(process.env.OCR_CACHE_FILE, JSON.stringify(pdfs.cache));
 
   rmSync(OUT_DIR, { recursive: true, force: true });
   if (errors.length > 0) process.exit(1);
   mkdirSync(OUT_DIR, { recursive: true });
   writeFileSync(new URL('data.json', OUT_DIR), JSON.stringify(dataset));
   writeFileSync(new URL('manifest.json', OUT_DIR), JSON.stringify(makeManifest(dataset), null, 2));
+  writeFileSync(new URL('ocr.json', OUT_DIR), JSON.stringify(pdfs.cache));
   writeFileSync(new URL('.nojekyll', OUT_DIR), '');
   console.log('Datos escritos en pipeline/out/');
+}
+
+/** Descubre los PDF de horarios y los lee (o reutiliza la caché del OCR). Ver src/pdf/readPdfs.ts. */
+async function readPdfStep(client: ReturnType<typeof createClient>, lines: Line[], stops: Dataset['stops']) {
+  const infoHtml = await client.getText(INFO_URL);
+  // La caché publicada ayuda a ahorrar tiempo; si no se puede descargar, se lee todo otra vez.
+  const local = process.env.OCR_CACHE_FILE;
+  let previous: OcrCacheFile = {};
+  let note: string | null = null;
+  if (local && existsSync(local)) previous = JSON.parse(readFileSync(local, 'utf8'));
+  else if (!local) {
+    const fetched = await fetchPreviousOcr();
+    if (fetched.ok) previous = fetched.cache;
+    else note = `${fetched.error}: all PDFs will be read again`;
+  }
+  const result = await readPdfs({
+    lines,
+    stops,
+    sources: parsePdfSources(infoHtml, INFO_URL),
+    startDate: parseStartDate(infoHtml),
+    previous,
+    manual: readJson<OcrCacheFile>('ocr-manual.json'),
+    onProgress: (cache) => {
+      if (local) writeFileSync(local, JSON.stringify(cache));
+    },
+  });
+  if (note) result.warnings.push(note);
+  return result;
 }
 
 /** Muestra el resumen en la consola y, en GitHub Actions, también en la página del proceso. */

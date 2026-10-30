@@ -39,6 +39,21 @@ export interface Direction {
   stopCodes: string[];
 }
 
+/**
+ * Nota de un viaje, sacada de las letras que Comujesa pone en sus PDF de horarios
+ * (por ejemplo "a: Retirada en Moreno Mendoza"). Cada nota describe UN viaje.
+ */
+export interface TripNote {
+  /** La letra de la leyenda del PDF ("a", "b"...). */
+  mark: string;
+  /** El texto de la leyenda, por ejemplo "Retirada en Moreno Mendoza". */
+  text: string;
+  /** Si es una retirada: código de la parada donde el bus termina (solo si coincide con una parada de la línea). */
+  endsAt?: string;
+  /** Las horas marcadas de ese viaje, por código de parada. */
+  times: Record<string, TimeOfDay>;
+}
+
 export interface Line {
   /** "1" a "18". */
   id: string;
@@ -58,6 +73,8 @@ export interface Line {
    * bus no pasa) por cada parada de `stopCodes`, en el mismo orden.
    */
   trips: Record<DayType, (TimeOfDay | null)[][]>;
+  /** Notas de viaje leídas de los PDF oficiales. Opcional: las copias antiguas de los datos no lo traen. */
+  notes?: Record<DayType, TripNote[]>;
 }
 
 export interface Holiday {
@@ -81,6 +98,22 @@ export interface TopUpPoint {
   approximate?: boolean;
 }
 
+/** Periodo de validez del horario oficial, por ejemplo "Invierno 2026/2027". Fechas "AAAA-MM-DD". */
+export interface SchedulePeriod {
+  name: string;
+  validFrom: string;
+  validTo: string;
+}
+
+/** Aviso escrito a mano (pipeline/notices.json) que la app muestra entre dos fechas "AAAA-MM-DD". */
+export interface Notice {
+  id: string;
+  from: string;
+  to: string;
+  es: string;
+  en: string;
+}
+
 /** Todo lo que descarga la app en un solo archivo (data.json). */
 export interface Dataset {
   schemaVersion: 1;
@@ -92,6 +125,10 @@ export interface Dataset {
   topUpPoints?: TopUpPoint[];
   /** Fecha "AAAA-MM-DD" en que se revisó el cartel oficial de recarga. */
   topUpChecked?: string;
+  /** Periodo de validez del horario (leído de los PDF). Opcional. */
+  period?: SchedulePeriod;
+  /** Avisos escritos a mano. Opcional. */
+  notices?: Notice[];
 }
 
 /**
