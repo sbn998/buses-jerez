@@ -309,8 +309,8 @@ function legendLines(words: OcrWord[]): string[] {
 
 /**
  * Convierte las líneas de la leyenda en entradas "letra + texto".
- * Solo nos fiamos si CADA línea tiene su letra leída y las letras son exactamente a, b, c... seguidas y en ese orden
- * (así es como están maquetadas). Si no, no se adivina nada: la leyenda queda vacía y cada letra usada
+ * Las filas están maquetadas en orden a, b, c... Nos fiamos si las letras leídas coinciden con su posición
+ * y la de la última fila se ha leído; las que falten en medio se completan por posición. Si no, no se adivina nada: la leyenda queda vacía y cada letra usada
  * en las horas va a `unreadable` como `legend:<letra>`. Las letras usadas sin entrada también.
  */
 function buildLegend(lines: string[], usedMarks: string[], unreadable: string[]): LegendEntry[] {
@@ -322,9 +322,16 @@ function buildLegend(lines: string[], usedMarks: string[], unreadable: string[])
       return m ? { letter: m[1], text: m[2].trim() } : { letter: null, text };
     });
 
+  // Las filas van siempre en orden (a, b, c...), así que la letra de cada fila es su posición. Nos fiamos si
+  // todas las letras leídas coinciden con su posición y la de la ÚLTIMA fila se ha leído: así no puede faltar
+  // ni sobrar ninguna fila (una fila perdida o de más movería esa última letra). El OCR pierde a veces alguna
+  // letra suelta de las de en medio, y no hace falta leerlas todas.
+  const last = entries[entries.length - 1];
   const trusted =
-    entries.length > 0 && entries.every((e, i) => e.letter === String.fromCharCode(97 + i));
-  const legend: LegendEntry[] = trusted ? entries.map((e) => ({ mark: e.letter as string, text: e.text })) : [];
+    entries.length > 0 &&
+    last.letter !== null &&
+    entries.every((e, i) => e.letter === null || e.letter === String.fromCharCode(97 + i));
+  const legend: LegendEntry[] = trusted ? entries.map((e, i) => ({ mark: String.fromCharCode(97 + i), text: e.text })) : [];
   for (const letter of usedMarks) {
     if (!legend.some((e) => e.mark === letter)) unreadable.push(`legend:${letter}`);
   }

@@ -262,6 +262,19 @@ describe('parsePage con páginas inventadas', () => {
       expect(parsed.legend.some((e) => e.mark === 'c')).toBe(false);
     });
 
+    it('fills a lost middle letter by position when the last line has its letter', () => {
+      const parsed = run('a: Uno', 'Dos', 'c: Tres');
+      expect(parsed.legend.map((e) => e.mark)).toEqual(['a', 'b', 'c']);
+      expect(parsed.legend[1].text).toBe('Dos');
+      expect(parsed.unreadable.filter((u) => u.startsWith('legend:'))).toEqual([]);
+    });
+
+    it('does not fill letters when the last line has no letter', () => {
+      const parsed = run('a: Uno', 'b: Dos', 'Tres');
+      expect(parsed.legend).toEqual([]);
+      expect(parsed.unreadable).toEqual(expect.arrayContaining(['legend:a', 'legend:c']));
+    });
+
     it('does not trust a repeated letter', () => {
       const parsed = run('a: Uno', 'c: Dos', 'c: Tres');
       expect(parsed.legend).toEqual([]);
