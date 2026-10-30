@@ -38,7 +38,7 @@ credentials.json
 # Generados o locales dentro de carpetas permitidas.
 node_modules/
 .wrangler/
-.dev.vars
+.dev.vars*
 .expo/
 dist/
 web-build/

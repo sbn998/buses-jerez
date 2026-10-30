@@ -9,12 +9,15 @@ export interface WalkRequest {
   origin: LonLat;
   points: LonLat[];
   direction: Direction;
+  // false = no leer ni guardar en la caché (se usa con la ubicación GPS del usuario, que es privada).
+  store: boolean;
 }
 
 // Máximo de puntos por petición (límite de la matriz gratuita y para evitar abusos).
 export const MAX_POINTS = 10;
 
 // Caja que rodea Jerez de la Frontera: fuera de ella no se calcula nada.
+// OJO: debe coincidir con JEREZ_BOUNDS de la app (src/lib/mapLayers.ts).
 const BOUNDS = { minLon: -6.35, minLat: 36.55, maxLon: -5.85, maxLat: 36.85 };
 
 // Comprueba que algo es una pareja [lon, lat] válida y dentro de Jerez.
@@ -36,12 +39,14 @@ function isLonLat(v: unknown): v is LonLat {
 // Devuelve la petición ya tipada, o null si algo no cuadra.
 export function validateRequest(body: unknown): WalkRequest | null {
   if (typeof body !== 'object' || body === null) return null;
-  const { origin, points, direction } = body as Record<string, unknown>;
+  const { origin, points, direction, store } = body as Record<string, unknown>;
   if (direction !== 'from' && direction !== 'to') return null;
   if (!isLonLat(origin)) return null;
   if (!Array.isArray(points) || points.length === 0 || points.length > MAX_POINTS) return null;
   if (!points.every(isLonLat)) return null;
-  return { origin, points: points as LonLat[], direction };
+  // `store` es opcional (por defecto true), pero si viene tiene que ser un booleano.
+  if (store !== undefined && typeof store !== 'boolean') return null;
+  return { origin, points: points as LonLat[], direction, store: store !== false };
 }
 
 // Clave de caché de un par origen-punto. Se redondea a 4 decimales (unos 10 m)

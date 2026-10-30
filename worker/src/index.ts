@@ -22,7 +22,8 @@ export interface Deps {
 const ORS_URL = 'https://api.openrouteservice.org/v2/matrix/foot-walking';
 const THIRTY_DAYS = 2592000;
 const MAX_BODY_BYTES = 2048;
-const ORS_TIMEOUT_MS = 8000;
+// Menos que los 4 s de la app: así lo que llega a tiempo a la app también se alcanza a guardar.
+const ORS_TIMEOUT_MS = 3500;
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -66,6 +67,8 @@ export async function handle(
   ctx: Pick<ExecutionContext, 'waitUntil'>,
   deps: Deps,
 ): Promise<Response> {
+  // Solo existe la ruta /walk, y solo con POST.
+  if (new URL(request.url).pathname !== '/walk') return json({ error: 'no encontrado' }, 404);
   if (request.method !== 'POST') return json({ error: 'método no permitido' }, 405);
 
   const text = await readBodyLimited(request);
@@ -84,6 +87,8 @@ export async function handle(
   const keys = req.points.map((p) => cacheKey(req.direction, req.origin, p));
   await Promise.all(
     keys.map(async (key, i) => {
+      // Con store=false (ubicación GPS del usuario) no se mira la caché.
+      if (!req.store) return;
       try {
         const raw = await deps.cache.get(key);
         const n = raw === null || raw === '' ? NaN : Number(raw);
@@ -126,7 +131,8 @@ export async function handle(
       const value = fresh[k];
       for (const i of idxs) meters[i] = value;
       // Los null (sin ruta) no se guardan, por si es un fallo temporal.
-      if (value !== null) {
+      // Con store=false tampoco se guarda nada: la posición del usuario no queda en KV.
+      if (value !== null && req.store) {
         ctx.waitUntil(deps.cache.put(key, String(value), { expirationTtl: THIRTY_DAYS }));
       }
     });

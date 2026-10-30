@@ -15,7 +15,15 @@ describe('validateRequest', () => {
       origin,
       points: [p1],
       direction: 'from',
+      store: true,
     });
+  });
+  it('store es opcional (true por defecto) y solo acepta booleanos', () => {
+    expect(validateRequest({ origin, points: [p1], direction: 'from', store: false })?.store).toBe(false);
+    expect(validateRequest({ origin, points: [p1], direction: 'from', store: true })?.store).toBe(true);
+    expect(validateRequest({ origin, points: [p1], direction: 'from', store: 'no' })).toBeNull();
+    expect(validateRequest({ origin, points: [p1], direction: 'from', store: 0 })).toBeNull();
+    expect(validateRequest({ origin, points: [p1], direction: 'from', store: null })).toBeNull();
   });
   it('rechaza un punto fuera de Jerez', () => {
     expect(validateRequest({ origin, points: [[2.17, 41.38]], direction: 'from' })).toBeNull();
@@ -57,7 +65,7 @@ describe('cacheKey', () => {
 
 describe('buildMatrixBody', () => {
   it('con from: el origen es la fuente y los puntos que faltan, destinos', () => {
-    const body = buildMatrixBody({ origin, points: [p1, p2, p3], direction: 'from' }, [0, 2]);
+    const body = buildMatrixBody({ origin, points: [p1, p2, p3], direction: 'from', store: true }, [0, 2]);
     expect(body).toEqual({
       locations: [origin, p1, p3],
       sources: [0],
@@ -66,7 +74,7 @@ describe('buildMatrixBody', () => {
     });
   });
   it('con to: los puntos son las fuentes y el origen, el destino', () => {
-    const body = buildMatrixBody({ origin, points: [p1, p2], direction: 'to' }, [0, 1]);
+    const body = buildMatrixBody({ origin, points: [p1, p2], direction: 'to', store: true }, [0, 1]);
     expect(body).toEqual({
       locations: [origin, p1, p2],
       sources: [1, 2],
@@ -229,6 +237,52 @@ describe('handle', () => {
       cache: fakeCache(),
     });
     expect(res.status).toBe(502);
+  });
+
+  it('con store=false ni lee ni escribe la caché y va directo a ORS', async () => {
+    const cache = fakeCache({ [cacheKey('from', origin, p1)]: '100' });
+    const ctx = fakeCtx();
+    const fetchMock = okOrs([[250.4]]);
+    const res = await handle(post({ origin, points: [p1], direction: 'from', store: false }), env, ctx, {
+      fetch: fetchMock,
+      cache,
+    });
+    expect(await res.json()).toEqual({ meters: [250] });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(cache.get).not.toHaveBeenCalled();
+    expect(cache.put).not.toHaveBeenCalled();
+    expect(ctx.pending).toHaveLength(0);
+  });
+
+  it('con store no booleano responde 400', async () => {
+    const res = await handle(post({ origin, points: [p1], direction: 'from', store: 'no' }), env, fakeCtx(), {
+      fetch: vi.fn(),
+      cache: fakeCache(),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('el tiempo máximo de ORS es 3500 ms', async () => {
+    const spy = vi.spyOn(AbortSignal, 'timeout');
+    await handle(post({ origin, points: [p1], direction: 'from' }), env, fakeCtx(), {
+      fetch: okOrs([[10]]),
+      cache: fakeCache(),
+    });
+    expect(spy).toHaveBeenCalledWith(3500);
+    spy.mockRestore();
+  });
+
+  it('una ruta distinta de /walk responde 404 sin llamar a ORS', async () => {
+    const fetchMock = vi.fn();
+    for (const path of ['/', '/otra', '/walk/x']) {
+      const req = new Request('https://worker.test' + path, {
+        method: 'POST',
+        body: JSON.stringify({ origin, points: [p1], direction: 'from' }),
+      });
+      const res = await handle(req, env, fakeCtx(), { fetch: fetchMock, cache: fakeCache() });
+      expect(res.status).toBe(404);
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('con GET responde 405', async () => {
