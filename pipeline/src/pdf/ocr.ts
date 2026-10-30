@@ -108,10 +108,48 @@ export async function createOcr(): Promise<{
             .toBuffer();
           for (const w of await readWords(band)) {
             // Solo añadimos lo que la primera pasada no había leído ya en ese mismo sitio.
+            // Los números y las horas de esta pasada se ignoran: la franja incluye la fila de códigos de parada,
+            // y una caja distinta de la primera pasada podría duplicar o inventar un código.
+            if (/^\d{1,3}$/.test(w.text) || /^\d{1,2}[:.]\d{2}/.test(w.text)) continue;
             if (!words.some((o) => overlaps(o, w))) words.push(w);
           }
         } finally {
           await worker.setParameters({ tessedit_pageseg_mode: PSM.SPARSE_TEXT });
+        }
+      }
+
+      // Tercera pasada: las letras de la leyenda (a, b, c...) van solas en una celda a la izquierda del texto
+      // y la primera pasada las pierde. Se leen aparte, en una columna estrecha y solo con letras.
+      const title = words.find((w) => /^observaciones/i.test(w.text.replace(/[^a-zA-Z]/g, '')));
+      if (title) {
+        const tw = title.x1 - title.x0;
+        const legend = words.filter((w) => w.y0 > title.y1 && w.x0 >= title.x0 - 0.2 * tw && w.x0 <= title.x0 + 3 * tw);
+        const left = Math.max(0, Math.round(title.x0 - 0.9 * tw));
+        const width = Math.round(0.8 * tw);
+        const top = Math.round(title.y1);
+        const bottom = Math.min(out.height ?? 0, Math.round(Math.max(title.y1, ...legend.map((w) => w.y1)) + 20));
+        if (width > 0 && bottom > top) {
+          await worker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_BLOCK, tessedit_char_whitelist: 'abcdefghijkl' });
+          try {
+            const crop = await sharp(png)
+              .extract({ left, top, width, height: bottom - top })
+              .resize(width * 3)
+              .png()
+              .toBuffer();
+            for (const w of await readWords(crop)) {
+              // Volvemos a las coordenadas de la imagen entera (la columna se amplió ×3).
+              const letter = {
+                ...w,
+                x0: left + Math.round(w.x0 / 3),
+                x1: left + Math.round(w.x1 / 3),
+                y0: top + Math.round(w.y0 / 3),
+                y1: top + Math.round(w.y1 / 3),
+              };
+              if (/^[a-l]$/.test(letter.text) && !words.some((o) => overlaps(o, letter))) words.push(letter);
+            }
+          } finally {
+            await worker.setParameters({ tessedit_pageseg_mode: PSM.SPARSE_TEXT, tessedit_char_whitelist: '' });
+          }
         }
       }
       return { width: out.width ?? 0, height: out.height ?? 0, words };

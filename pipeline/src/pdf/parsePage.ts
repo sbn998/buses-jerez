@@ -2,7 +2,9 @@
  * Analiza las palabras que ha leído el OCR de un PDF de horarios (función pura, sin leer archivos ni red).
  * Saca tres cosas: las horas marcadas con una letra (por ejemplo "21:38a"), la leyenda de esas letras
  * ("a: Retirada en Moreno Mendoza") y las fechas de validez del horario.
- * Todo lo que no se puede leer con seguridad va a `unreadable` para que una persona lo revise.
+ * Regla de oro: ante la duda no se marca nada. Una marca falsa es peor que una marca que falta,
+ * así que lo dudoso se descarta y se anota en `warnings`; solo lo que impide fiarse de la
+ * leyenda o de las fechas va a `unreadable` (eso sí bloquea).
  */
 import type { TimeOfDay } from '../../../src/data/schema';
 import type { OcrPage, OcrWord } from './ocr';
@@ -30,8 +32,10 @@ export interface ParsedPdf {
   periodName: string | null;
   legend: LegendEntry[];
   marks: MarkedTime[];
-  /** Textos que no se han podido leer con seguridad (horas que no existen en el buscador, letras sin leyenda...). */
+  /** Problemas que BLOQUEAN: leyenda sin resolver, letra sin leyenda, fechas que faltan o no valen. */
   unreadable: string[];
+  /** Marcas dudosas que se han descartado (parada y texto leído). No bloquean: solo informan. */
+  warnings: string[];
 }
 
 const cx = (w: OcrWord) => (w.x0 + w.x1) / 2;
@@ -64,7 +68,43 @@ function groupLines(words: OcrWord[], tolerance = 0.6, minTolerance = 0): OcrWor
 }
 
 // ---------------------------------------------------------------------------------------------
-// Columnas (la fila "CÓDIGO PARADA")
+// Horas
+// ---------------------------------------------------------------------------------------------
+
+/** Pasa "7", "55" a "07:55". */
+const toTime = (h: string, m: string) => `${h.padStart(2, '0')}:${m}` as TimeOfDay;
+
+/**
+ * Las horas posibles de lo que se ha leído, que existen en el buscador.
+ * Con 2 cifras solo hay una posibilidad. Con 1 cifra el OCR ha perdido otra: puede ser 0, 1 o 2 delante,
+ * y solo se admite si exactamente una de las tres existe (si hay varias, no se sabe cuál es).
+ */
+function candidates(h: string, min: string, times: TimeOfDay[]): TimeOfDay[] {
+  const options = h.length === 1 ? ['0', '1', '2'].map((p) => p + h).filter((x) => +x < 24) : [h];
+  return options.map((x) => toTime(x, min)).filter((t) => times.includes(t));
+}
+
+/** Cómo es una palabra de una tabla: nada, hora normal, hora con letra, u hora con algo raro detrás. */
+type WordKind =
+  | { kind: 'other' }
+  | { kind: 'plain' }
+  | { kind: 'marked'; h: string; min: string; mark: string }
+  | { kind: 'dubious' };
+
+function classify(text: string): WordKind {
+  const start = /^(\d{1,2})[:.](\d{2})(.*)$/s.exec(text);
+  if (!start) return { kind: 'other' };
+  // Quitamos el ruido del OCR (%, comillas...) y pasamos a minúscula.
+  const clean = text.replace(/[^0-9:.a-zA-Z]/g, '').toLowerCase();
+  const m = /^(\d{1,2})[:.](\d{2})([a-z])[a-z]?$/.exec(clean);
+  if (m) return { kind: 'marked', h: m[1], min: m[2], mark: m[3] };
+  // Una hora sin nada detrás (o con un punto) es una hora normal; con otro símbolo raro puede ser una letra ilegible.
+  if (start[3].replace(/[\s.,:;]/g, '') === '') return { kind: 'plain' };
+  return { kind: 'dubious' };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Columnas
 // ---------------------------------------------------------------------------------------------
 
 /** Una columna de horas: dónde está (centro x), a qué parada pertenece (si se sabe) y las palabras que contiene. */
@@ -81,17 +121,14 @@ interface Row {
   columns: Column[];
 }
 
-/** Una palabra que empieza como una hora ("21:38", "21:38a", "7:55C"...). */
+/** Una columna necesita al menos estas horas para poder compararla con el buscador. */
+const MIN_COLUMN_TIMES = 3;
+/** Parte de las horas de la columna que tiene que existir en el buscador para aceptar una parada. */
+const MIN_SHARE = 0.8;
+/** Lo que tiene que ganar la parada elegida a las demás candidatas (en puntos de porcentaje / 100). */
+const MIN_LEAD = 0.3;
+
 const looksLikeTime = (w: OcrWord) => /^\d{1,2}[:.]\d{2}/.test(w.text);
-
-/** Pasa "7", "55" a "07:55". */
-const toTime = (h: string, m: string) => `${h.padStart(2, '0')}:${m}` as TimeOfDay;
-
-/** La hora "HH:MM" que hay al principio de una palabra, sin la letra de marca (o null si no hay). */
-function plainTime(text: string): { h: string; min: string } | null {
-  const m = /^(\d{1,2})[:.](\d{2})/.exec(text);
-  return m ? { h: m[1], min: m[2] } : null;
-}
 
 /** Busca las filas de códigos: grupos de números de 1 a 3 cifras alineados, con al menos 3 y alguna parada conocida. */
 function findRows(words: OcrWord[], known: Record<string, TimeOfDay[]>): Row[] {
@@ -112,102 +149,138 @@ function rowFor(word: OcrWord, rows: Row[]): Row | null {
   return best;
 }
 
-/** Cuántas horas de una columna coinciden con las del buscador para una parada. */
-function hitsFor(column: Column, times: TimeOfDay[]): number {
+/** Parte de las horas de una columna que coinciden (sin ambigüedad) con las del buscador para una parada. */
+function share(column: Column, times: TimeOfDay[] | undefined): number {
+  if (!times || column.words.length < MIN_COLUMN_TIMES) return 0;
   let hits = 0;
   for (const w of column.words) {
-    const t = plainTime(w.text);
-    if (!t) continue;
-    if (times.includes(toTime(t.h, t.min)) || (t.h.length === 1 && times.includes(toTime(`1${t.h}`, t.min)))) hits++;
+    const m = /^(\d{1,2})[:.](\d{2})/.exec(w.text);
+    if (m && candidates(m[1], m[2], times).length === 1) hits++;
   }
-  return hits;
+  return hits / column.words.length;
+}
+
+/** Reparte las palabras con forma de hora en columnas por su posición x (las que tienen casi el mismo centro). */
+function makeColumns(row: Row, times: OcrWord[], rows: Row[], widths: number): void {
+  const mine = times.filter((w) => rowFor(w, rows) === row).sort((a, b) => cx(a) - cx(b));
+  for (const w of mine) {
+    const last = row.columns[row.columns.length - 1];
+    if (last && cx(w) - last.cx <= 0.5 * widths) {
+      last.words.push(w);
+      last.cx = last.words.reduce((sum, o) => sum + cx(o), 0) / last.words.length;
+    } else {
+      row.columns.push({ cx: cx(w), stopCode: null, words: [w] });
+    }
+  }
 }
 
 /**
- * Reparte las palabras con forma de hora en columnas (por su posición x) y a cada columna le pone la parada
- * cuyo código está justo encima. Si el código de una columna no se ha leído bien, se averigua la parada
- * comparando las horas de la columna con las del buscador (solo entre las paradas que aún no tienen columna).
+ * El código leído de cada columna: la palabra de código conocida más cercana en x. Cada palabra de código
+ * sirve a una sola columna (la más cercana a ella); las demás se quedan sin código leído.
  */
-function buildColumns(words: OcrWord[], known: Record<string, TimeOfDay[]>): Row[] {
+function readCodes(row: Row, known: Record<string, TimeOfDay[]>, widths: number): (string | null)[] {
+  const codes = row.codes.filter((w) => known[w.text] !== undefined);
+  const nearest = row.columns.map((col) => {
+    let best: OcrWord | null = null;
+    for (const c of codes) {
+      if (!best || Math.abs(cx(c) - col.cx) < Math.abs(cx(best) - col.cx)) best = c;
+    }
+    return best && Math.abs(cx(best) - col.cx) <= 0.75 * widths ? best : null;
+  });
+  return nearest.map((word, i) => {
+    if (!word) return null;
+    // Si otra columna está más cerca de esa misma palabra, la palabra es de la otra.
+    const rival = row.columns.some(
+      (other, j) => j !== i && nearest[j] === word && Math.abs(other.cx - cx(word)) < Math.abs(row.columns[i].cx - cx(word)),
+    );
+    return rival ? null : word.text;
+  });
+}
+
+/**
+ * Pone la parada a cada columna usando el ORDEN de paradas de la línea (`stopOrder`):
+ *  1. Los códigos bien leídos se alinean con el orden (subsecuencia común más larga) y solo se aceptan
+ *     como "anclas" si además ≥80 % de las horas de la columna existen en el buscador para esa parada.
+ *  2. Las columnas entre dos anclas se reparten por posición si hay tantas columnas como paradas entre ellas;
+ *     si no, se elige por horas entre las paradas de ese hueco.
+ *  3. En todo caso una columna solo se acepta con ≥80 % de coincidencias y ganando por ≥30 puntos a las demás
+ *     candidatas del hueco. Si no, se queda sin parada.
+ */
+function identifyColumns(row: Row, known: Record<string, TimeOfDay[]>, order: string[], widths: number): void {
+  const n = row.columns.length;
+  const L = order.length;
+  const read = readCodes(row, known, widths);
+
+  // Subsecuencia común más larga entre los códigos leídos y el orden de paradas (respeta el orden izquierda → derecha).
+  const dp: number[][] = Array.from({ length: n + 1 }, () => new Array<number>(L + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = L - 1; j >= 0; j--) {
+      dp[i][j] = read[i] !== null && read[i] === order[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+  const anchors: { col: number; pos: number }[] = [];
+  for (let i = 0, j = 0; i < n && j < L; ) {
+    if (read[i] !== null && read[i] === order[j] && dp[i][j] === dp[i + 1][j + 1] + 1) {
+      // Solo es ancla si las horas lo confirman.
+      if (share(row.columns[i], known[order[j]]) >= MIN_SHARE) anchors.push({ col: i, pos: j });
+      i++;
+      j++;
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) i++;
+    else j++;
+  }
+  for (const a of anchors) row.columns[a.col].stopCode = order[a.pos];
+
+  /** ¿La parada de esa posición gana con claridad a las demás del hueco? */
+  const accept = (col: Column, pos: number, gap: number[]): boolean => {
+    const mine = share(col, known[order[pos]]);
+    if (mine < MIN_SHARE) return false;
+    return gap.every((o) => order[o] === order[pos] || share(col, known[order[o]]) <= mine - MIN_LEAD);
+  };
+
+  const bounds = [{ col: -1, pos: -1 }, ...anchors, { col: n, pos: L }];
+  for (let b = 0; b + 1 < bounds.length; b++) {
+    const left = bounds[b];
+    const right = bounds[b + 1];
+    const cols: number[] = [];
+    for (let i = left.col + 1; i < right.col; i++) cols.push(i);
+    const gap: number[] = [];
+    for (let p = left.pos + 1; p < right.pos; p++) gap.push(p);
+    if (cols.length === 0 || gap.length === 0) continue;
+
+    if (cols.length === gap.length) {
+      cols.forEach((c, t) => {
+        if (accept(row.columns[c], gap[t], gap)) row.columns[c].stopCode = order[gap[t]];
+      });
+    } else {
+      // No cuadran las cuentas (hay columnas de paradas que el buscador no tiene): se elige por horas, siempre hacia la derecha.
+      let last = left.pos;
+      for (const c of cols) {
+        const options = gap.filter((p) => p > last);
+        const best = options.sort((a, b2) => share(row.columns[c], known[order[b2]]) - share(row.columns[c], known[order[a]]))[0];
+        if (best !== undefined && accept(row.columns[c], best, options)) {
+          row.columns[c].stopCode = order[best];
+          last = best;
+        }
+      }
+    }
+  }
+}
+
+function buildColumns(words: OcrWord[], known: Record<string, TimeOfDay[]>, order: string[]): Row[] {
   const rows = findRows(words, known);
   if (rows.length === 0) return rows;
   const times = words.filter(looksLikeTime);
   const widths = median(times.map((w) => w.x1 - w.x0));
-
-  // 1. Cada hora va a su fila; dentro de la fila se juntan en columnas las que tienen casi el mismo centro x.
   for (const row of rows) {
-    const mine = times.filter((w) => rowFor(w, rows) === row).sort((a, b) => cx(a) - cx(b));
-    for (const w of mine) {
-      const last = row.columns[row.columns.length - 1];
-      if (last && cx(w) - last.cx <= 0.5 * widths) {
-        last.words.push(w);
-        last.cx = last.words.reduce((sum, o) => sum + cx(o), 0) / last.words.length;
-      } else {
-        row.columns.push({ cx: cx(w), stopCode: null, words: [w] });
-      }
-    }
-
-    // 2. El código conocido más cercano (en x) da la parada de la columna.
-    const knownCodes = row.codes.filter((w) => known[w.text] !== undefined);
-    for (const col of row.columns) {
-      let best: OcrWord | null = null;
-      for (const c of knownCodes) {
-        if (!best || Math.abs(cx(c) - col.cx) < Math.abs(cx(best) - col.cx)) best = c;
-      }
-      if (best && Math.abs(cx(best) - col.cx) <= 0.75 * widths) col.stopCode = best.text;
-    }
-
-    // 3. Columnas sin parada: se prueban las paradas que no tienen columna en esta fila.
-    const taken = new Set(row.columns.map((c) => c.stopCode));
-    for (const col of row.columns) {
-      if (col.stopCode) continue;
-      const scores = Object.keys(known)
-        .filter((code) => !taken.has(code))
-        .map((code) => ({ code, hits: hitsFor(col, known[code]) }))
-        .sort((a, b) => b.hits - a.hits);
-      const [first, second] = scores;
-      // Hace falta que casi todas las horas de la columna coincidan, y que gane a la siguiente con claridad.
-      if (first && first.hits >= 5 && first.hits >= 0.7 * col.words.length && first.hits > (second?.hits ?? 0) + 2) {
-        col.stopCode = first.code;
-        taken.add(first.code);
-      }
-    }
+    makeColumns(row, times, rows, widths);
+    identifyColumns(row, known, order, widths);
   }
   return rows;
 }
 
 // ---------------------------------------------------------------------------------------------
-// Horas marcadas
-// ---------------------------------------------------------------------------------------------
-
-/**
- * Intenta leer una palabra como hora marcada. Devuelve null si no tiene pinta de hora marcada (por ejemplo
- * una hora sin letra), y `{ raw }` si lo parece pero la hora no existe en el buscador para esa parada.
- */
-function readMarked(
-  text: string,
-  times: TimeOfDay[],
-): { time: TimeOfDay; mark: string } | { raw: string } | null {
-  // Quitamos el ruido del OCR (%, comillas...) y pasamos a minúscula.
-  const clean = text.replace(/[^0-9:.a-zA-Z]/g, '').toLowerCase();
-  const m = /^(\d{1,2})[:.](\d{2})([a-z])[a-z]?$/.exec(clean);
-  if (!m) return null;
-  const [, h, min, mark] = m;
-  const direct = toTime(h, min);
-  if (times.includes(direct)) return { time: direct, mark };
-  // "7:55c" suele ser "17:55c": al OCR se le cae el primer "1".
-  if (h.length === 1) {
-    const withOne = toTime(`1${h}`, min);
-    if (times.includes(withOne)) return { time: withOne, mark };
-  }
-  return { raw: text };
-}
-
-// ---------------------------------------------------------------------------------------------
 // Leyenda
 // ---------------------------------------------------------------------------------------------
-
-const LETTER_ONLY = /^[a-z][:.]?$/;
 
 /** Lee las líneas de la leyenda (debajo de "OBSERVACIONES") como textos sueltos, de arriba abajo. */
 function legendLines(words: OcrWord[]): string[] {
@@ -230,29 +303,29 @@ function legendLines(words: OcrWord[]): string[] {
   return groupLines(legendWords, 0.5).map((line) => line.map((w) => w.text).join(' '));
 }
 
-/** Convierte las líneas de la leyenda en entradas "letra + texto". Las letras perdidas se rellenan con `usedMarks`. */
+/**
+ * Convierte las líneas de la leyenda en entradas "letra + texto".
+ * Si el OCR ha perdido las letras, se asignan por posición (a, b, c...) solo cuando cuadra EXACTAMENTE:
+ * tantas líneas como letras usadas en las horas, y las letras que sí se leyeron coinciden con esa posición.
+ * Si no cuadra, las letras usadas sin leyenda van a `unreadable` como `legend:<letra>`.
+ */
 function buildLegend(lines: string[], usedMarks: string[], unreadable: string[]): LegendEntry[] {
-  const withLetter: LegendEntry[] = [];
-  const withoutLetter: string[] = [];
-  for (const line of lines) {
-    const text = line.replace(/^[^0-9a-zA-ZÀ-ÿ]+/, '').trim();
-    const m = /^([a-z])(?:\s*[:.]\s*|\s+)(\S.*)$/.exec(text);
-    if (m) withLetter.push({ mark: m[1], text: m[2].trim() });
-    else if (text) withoutLetter.push(text);
-  }
-  const claimed = new Set(withLetter.map((e) => e.mark));
-  const free = usedMarks.filter((l) => !claimed.has(l));
-  const legend = [...withLetter];
-  // Si faltan letras, se reparten por orden alfabético, pero solo si cuadra exactamente.
-  if (withoutLetter.length > 0 && withoutLetter.length === free.length) {
-    withoutLetter.forEach((text, i) => legend.push({ mark: free[i], text }));
-  } else if (withLetter.length === 0 && withoutLetter.length > 0) {
-    // Ninguna letra se ha leído y hay más entradas que letras usadas (alguna letra no sale en las horas):
-    // la leyenda siempre va en orden a, b, c... así que se numeran por posición, si así quedan cubiertas todas las usadas.
-    const letters = withoutLetter.map((_, i) => String.fromCharCode(97 + i));
-    if (usedMarks.every((l) => letters.includes(l))) {
-      withoutLetter.forEach((text, i) => legend.push({ mark: letters[i], text }));
-    }
+  const entries = lines
+    .map((line) => line.replace(/^[^0-9a-zA-ZÀ-ÿ]+/, '').trim())
+    .filter((text) => text !== '')
+    .map((text) => {
+      const m = /^([a-z])(?:\s*[:.]\s*|\s+)(\S.*)$/.exec(text);
+      return m ? { letter: m[1], text: m[2].trim() } : { letter: null, text };
+    });
+
+  let legend: LegendEntry[];
+  if (entries.every((e) => e.letter !== null)) {
+    legend = entries.map((e) => ({ mark: e.letter as string, text: e.text }));
+  } else if (entries.length === usedMarks.length && entries.every((e, i) => e.letter === null || e.letter === usedMarks[i])) {
+    legend = entries.map((e, i) => ({ mark: usedMarks[i], text: e.text }));
+  } else {
+    // Solo nos fiamos de las entradas cuya letra se leyó.
+    legend = entries.filter((e) => e.letter !== null).map((e) => ({ mark: e.letter as string, text: e.text }));
   }
   for (const letter of usedMarks) {
     if (!legend.some((e) => e.mark === letter)) unreadable.push(`legend:${letter}`);
@@ -291,27 +364,40 @@ function readValidity(words: OcrWord[]): Pick<ParsedPdf, 'validFrom' | 'validTo'
 
 /**
  * Analiza una página leída por OCR.
- * `known` son las horas que da el buscador para esa línea y ese tipo de día, por código de parada:
- * sirven para saber en qué columna está cada hora y para comprobar que la hora se ha leído bien.
+ * - `known`: las horas que da el buscador para esa línea y ese tipo de día, por código de parada.
+ * - `stopOrder`: los códigos de parada de la línea en su orden de recorrido (`line.stopCodes`),
+ *   que sirve para saber qué parada es cada columna aunque el OCR lea mal su código.
  */
-export function parsePage(page: OcrPage, known: Record<string, TimeOfDay[]>): ParsedPdf {
+export function parsePage(page: OcrPage, known: Record<string, TimeOfDay[]>, stopOrder: string[]): ParsedPdf {
   const marks: MarkedTime[] = [];
   const unreadable: string[] = [];
+  const warnings: string[] = [];
 
-  for (const row of buildColumns(page.words, known)) {
+  for (const row of buildColumns(page.words, known, stopOrder)) {
     for (const column of row.columns) {
-      // Una columna sin parada reconocida (otra línea, código ilegible...) no se puede comprobar: se ignora.
-      if (!column.stopCode) continue;
+      const code = column.stopCode;
       for (const word of column.words) {
-        const read = readMarked(word.text, known[column.stopCode]);
-        if (!read) continue;
-        if ('raw' in read) unreadable.push(read.raw);
-        else marks.push({ stopCode: column.stopCode, time: read.time, mark: read.mark });
+        const kind = classify(word.text);
+        if (kind.kind === 'other' || kind.kind === 'plain') continue;
+        if (!code) {
+          warnings.push(`descartada ${word.text} en una columna sin parada identificada`);
+        } else if (kind.kind === 'dubious') {
+          warnings.push(`descartada ${word.text} en la parada ${code}: letra ilegible`);
+        } else {
+          const found = candidates(kind.h, kind.min, known[code]);
+          if (found.length === 1) marks.push({ stopCode: code, time: found[0], mark: kind.mark });
+          else if (found.length === 0) warnings.push(`descartada ${word.text} en la parada ${code}: la hora no está en el buscador`);
+          else warnings.push(`descartada ${word.text} en la parada ${code}: hora ambigua`);
+        }
       }
     }
   }
 
+  const validity = readValidity(page.words);
+  if (!validity.validFrom || !validity.validTo) unreadable.push('validity:dates');
+  if (!validity.periodName) unreadable.push('validity:period');
+
   const usedMarks = [...new Set(marks.map((m) => m.mark))].sort();
   const legend = buildLegend(legendLines(page.words), usedMarks, unreadable);
-  return { ...readValidity(page.words), legend, marks, unreadable };
+  return { ...validity, legend, marks, unreadable, warnings };
 }
