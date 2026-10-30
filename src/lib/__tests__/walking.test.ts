@@ -26,6 +26,18 @@ afterEach(() => {
 });
 
 describe('fetchWalks', () => {
+  it('sin variable de entorno usa la URL del Worker publicado', async () => {
+    let mod!: typeof import('@/lib/walking');
+    jest.isolateModules(() => {
+      delete process.env.EXPO_PUBLIC_WALK_API_URL;
+      mod = require('@/lib/walking');
+    });
+    expect(mod.WALK_API_URL).toBe('https://buses-jerez-walk.buses-jerez-walk.workers.dev/walk');
+    const fetchFn = jest.fn().mockResolvedValue(respuesta(200, { meters: [410] }));
+    expect(await mod.fetchWalks(origen, [paradas[0]], 'from', fetchFn)).toEqual({ S1: 410 });
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+
   it('manda el cuerpo esperado ([lon, lat]) y quita los null', async () => {
     const { fetchWalks } = cargar('https://worker.test/walk');
     const fetchFn = jest.fn().mockResolvedValue(respuesta(200, { meters: [420, null, 900] }));

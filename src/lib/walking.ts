@@ -4,10 +4,11 @@ import type { Stop } from '@/data/schema';
 import type { LatLon } from '@/lib/planner';
 
 /**
- * URL del Worker. Vacía hasta que se despliegue (Task 4): entonces no se pide nada.
- * Se puede fijar con la variable EXPO_PUBLIC_WALK_API_URL (así también se prueba con una URL).
+ * URL del Worker publicado en Cloudflare (ver worker/README.md). No es secreta.
+ * Se puede cambiar con la variable EXPO_PUBLIC_WALK_API_URL; si vale '', no se pide nada.
  */
-export const WALK_API_URL = process.env.EXPO_PUBLIC_WALK_API_URL ?? '';
+export const DEFAULT_WALK_API_URL = 'https://buses-jerez-walk.buses-jerez-walk.workers.dev/walk';
+export const WALK_API_URL = process.env.EXPO_PUBLIC_WALK_API_URL ?? DEFAULT_WALK_API_URL;
 
 /** El Worker acepta como máximo 10 puntos por petición. */
 const MAX_POINTS = 10;
