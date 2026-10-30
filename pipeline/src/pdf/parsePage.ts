@@ -221,8 +221,12 @@ function identifyColumns(row: Row, known: Record<string, TimeOfDay[]>, order: st
   const anchors: { col: number; pos: number }[] = [];
   for (let i = 0, j = 0; i < n && j < L; ) {
     if (read[i] !== null && read[i] === order[j] && dp[i][j] === dp[i + 1][j + 1] + 1) {
-      // Solo es ancla si las horas lo confirman.
-      if (share(row.columns[i], known[order[j]]) >= MIN_SHARE) anchors.push({ col: i, pos: j });
+      // Solo es ancla si las horas lo confirman y ganan con claridad a las paradas contiguas (que pueden tener las mismas horas).
+      const mine = share(row.columns[i], known[order[j]]);
+      const beside = [order[j - 1], order[j + 1]].filter((o) => o !== undefined && o !== order[j]);
+      if (mine >= MIN_SHARE && beside.every((o) => share(row.columns[i], known[o]) <= mine - MIN_LEAD)) {
+        anchors.push({ col: i, pos: j });
+      }
       i++;
       j++;
     } else if (dp[i + 1][j] >= dp[i][j + 1]) i++;
@@ -305,9 +309,9 @@ function legendLines(words: OcrWord[]): string[] {
 
 /**
  * Convierte las líneas de la leyenda en entradas "letra + texto".
- * Si el OCR ha perdido las letras, se asignan por posición (a, b, c...) solo cuando cuadra EXACTAMENTE:
- * tantas líneas como letras usadas en las horas, y las letras que sí se leyeron coinciden con esa posición.
- * Si no cuadra, las letras usadas sin leyenda van a `unreadable` como `legend:<letra>`.
+ * Solo nos fiamos si CADA línea tiene su letra leída y las letras son exactamente a, b, c... seguidas y en ese orden
+ * (así es como están maquetadas). Si no, no se adivina nada: la leyenda queda vacía y cada letra usada
+ * en las horas va a `unreadable` como `legend:<letra>`. Las letras usadas sin entrada también.
  */
 function buildLegend(lines: string[], usedMarks: string[], unreadable: string[]): LegendEntry[] {
   const entries = lines
@@ -318,19 +322,13 @@ function buildLegend(lines: string[], usedMarks: string[], unreadable: string[])
       return m ? { letter: m[1], text: m[2].trim() } : { letter: null, text };
     });
 
-  let legend: LegendEntry[];
-  if (entries.every((e) => e.letter !== null)) {
-    legend = entries.map((e) => ({ mark: e.letter as string, text: e.text }));
-  } else if (entries.length === usedMarks.length && entries.every((e, i) => e.letter === null || e.letter === usedMarks[i])) {
-    legend = entries.map((e, i) => ({ mark: usedMarks[i], text: e.text }));
-  } else {
-    // Solo nos fiamos de las entradas cuya letra se leyó.
-    legend = entries.filter((e) => e.letter !== null).map((e) => ({ mark: e.letter as string, text: e.text }));
-  }
+  const trusted =
+    entries.length > 0 && entries.every((e, i) => e.letter === String.fromCharCode(97 + i));
+  const legend: LegendEntry[] = trusted ? entries.map((e) => ({ mark: e.letter as string, text: e.text })) : [];
   for (const letter of usedMarks) {
     if (!legend.some((e) => e.mark === letter)) unreadable.push(`legend:${letter}`);
   }
-  return legend.sort((a, b) => a.mark.localeCompare(b.mark));
+  return legend;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -374,7 +372,9 @@ export function parsePage(page: OcrPage, known: Record<string, TimeOfDay[]>, sto
   const warnings: string[] = [];
 
   for (const row of buildColumns(page.words, known, stopOrder)) {
-    for (const column of row.columns) {
+    /** Las horas marcadas aceptables de esta fila de la tabla, con la columna en que están. */
+    const cells: { col: number; word: OcrWord; code: string; time: TimeOfDay; mark: string }[] = [];
+    row.columns.forEach((column, col) => {
       const code = column.stopCode;
       for (const word of column.words) {
         const kind = classify(word.text);
@@ -385,11 +385,36 @@ export function parsePage(page: OcrPage, known: Record<string, TimeOfDay[]>, sto
           warnings.push(`descartada ${word.text} en la parada ${code}: letra ilegible`);
         } else {
           const found = candidates(kind.h, kind.min, known[code]);
-          if (found.length === 1) marks.push({ stopCode: code, time: found[0], mark: kind.mark });
+          if (found.length === 1) cells.push({ col, word, code, time: found[0], mark: kind.mark });
           else if (found.length === 0) warnings.push(`descartada ${word.text} en la parada ${code}: la hora no está en el buscador`);
           else warnings.push(`descartada ${word.text} en la parada ${code}: hora ambigua`);
         }
       }
+    });
+
+    // En un viaje todas las paradas seguidas llevan la misma letra: si en una tanda de celdas contiguas
+    // (misma línea, columnas consecutivas) hay letras mezcladas, nos quedamos con la mayoritaria
+    // (o con ninguna si hay empate), porque una letra mal leída daría una marca falsa.
+    const byWord = new Map(cells.map((c) => [c.word, c]));
+    for (const line of groupLines(cells.map((c) => c.word))) {
+      const inLine = line.map((w) => byWord.get(w)!).sort((a, b) => a.col - b.col);
+      let run: typeof inLine = [];
+      const flush = () => {
+        const counts = new Map<string, number>();
+        for (const c of run) counts.set(c.mark, (counts.get(c.mark) ?? 0) + 1);
+        const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+        const winner = ranked.length === 1 || ranked[0][1] > ranked[1][1] ? ranked[0][0] : null;
+        for (const c of run) {
+          if (c.mark === winner) marks.push({ stopCode: c.code, time: c.time, mark: c.mark });
+          else warnings.push(`descartada ${c.word.text} en la parada ${c.code}: letra distinta del resto de la fila`);
+        }
+        run = [];
+      };
+      for (const c of inLine) {
+        if (run.length > 0 && c.col !== run[run.length - 1].col + 1) flush();
+        run.push(c);
+      }
+      if (run.length > 0) flush();
     }
   }
 

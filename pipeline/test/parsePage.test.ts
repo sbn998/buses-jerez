@@ -68,23 +68,25 @@ describe('parsePage con la línea 15 NJ laborable (45 columnas)', () => {
   });
 
   it('finds exactly the expected marks per letter', () => {
-    expect(parsed.marks).toHaveLength(107);
-    expect(count(parsed.marks, 'a')).toBe(66);
+    expect(parsed.marks).toHaveLength(104);
+    expect(count(parsed.marks, 'a')).toBe(64);
     expect(count(parsed.marks, 'b')).toBe(0);
-    expect(count(parsed.marks, 'c')).toBe(41);
+    expect(count(parsed.marks, 'c')).toBe(40);
     for (const m of parsed.marks) expect(known[m.stopCode]).toContain(m.time);
   });
 
   it('does not mark the neighbours that have the same times', () => {
-    // Avd. Jerez I (308), Avd. Jerez II (87) y Nueva Jarilla (141) tienen horas casi iguales; solo la 141 lleva marca.
-    expect(parsed.marks).toContainEqual({ stopCode: '141', time: '14:01', mark: 'a' });
-    expect(parsed.marks.filter((m) => m.stopCode === '87' || m.stopCode === '308')).toEqual([]);
+    // Avd. Jerez I (308), Avd. Jerez II (87) y Nueva Jarilla (141) tienen horas casi iguales: ninguna se identifica con seguridad.
+    expect(parsed.marks.filter((m) => ['87', '141', '308'].includes(m.stopCode))).toEqual([]);
   });
 
   it('reports the dropped marks as warnings, not as unreadable', () => {
     expect([...parsed.warnings].sort()).toEqual([
+      'descartada 06:45c en una columna sin parada identificada',
       'descartada 07:02c en una columna sin parada identificada',
-      'descartada 17:29€ en la parada 141: letra ilegible',
+      'descartada 14:01a en una columna sin parada identificada',
+      'descartada 15:31a en una columna sin parada identificada',
+      'descartada 17:29€ en una columna sin parada identificada',
       'descartada 17:46c en una columna sin parada identificada',
     ]);
   });
@@ -226,10 +228,10 @@ describe('parsePage con páginas inventadas', () => {
   });
 
   describe('leyenda', () => {
-    const known = { '10': [...A, '21:39'], '20': B, '30': C };
+    const known = { '10': [...A, '21:39'], '20': [...B, '21:40'], '30': C };
     const cols = [
       { code: '10', times: [...A, '21:39a'] },
-      { code: '20', times: B },
+      { code: '20', times: [...B, '21:40c'] },
       { code: '30', times: C },
     ];
     const legend = (...lines: string[]) => [
@@ -238,22 +240,86 @@ describe('parsePage con páginas inventadas', () => {
     ];
     const run = (...lines: string[]) => parsePage(table(cols, legend(...lines)), known, ['10', '20', '30']);
 
-    it('assigns missing letters by position only when the count is exact', () => {
-      const parsed = run('Retirada en Plaza');
-      expect(parsed.legend).toEqual([{ mark: 'a', text: 'Retirada en Plaza' }]);
-      expect(parsed.unreadable).not.toContain('legend:a');
+    it('trusts the legend when every line has its letter in a, b, c order', () => {
+      const parsed = run('a: Uno', 'b: Dos', 'c: Tres');
+      expect(parsed.legend).toEqual([
+        { mark: 'a', text: 'Uno' },
+        { mark: 'b', text: 'Dos' },
+        { mark: 'c', text: 'Tres' },
+      ]);
+      expect(parsed.unreadable).not.toContain('legend:c');
     });
 
-    it('does not guess when the legend has an extra line', () => {
-      const parsed = run('Retirada en Plaza', 'Otra cosa');
+    it('does not guess letters that were not read', () => {
+      const parsed = run('Uno', 'Dos');
       expect(parsed.legend).toEqual([]);
-      expect(parsed.unreadable).toContain('legend:a');
+      expect(parsed.unreadable).toEqual(expect.arrayContaining(['legend:a', 'legend:c']));
     });
 
-    it('does not guess when a letter that was read disagrees with the position', () => {
-      const parsed = run('b: Retirada en Plaza');
-      expect(parsed.legend).toEqual([{ mark: 'b', text: 'Retirada en Plaza' }]);
-      expect(parsed.unreadable).toContain('legend:a');
+    it('does not trust a legend that lost its last line', () => {
+      const parsed = run('a: Uno', 'b: Dos');
+      expect(parsed.unreadable).toContain('legend:c');
+      expect(parsed.legend.some((e) => e.mark === 'c')).toBe(false);
     });
+
+    it('does not trust a repeated letter', () => {
+      const parsed = run('a: Uno', 'c: Dos', 'c: Tres');
+      expect(parsed.legend).toEqual([]);
+      expect(parsed.unreadable).toEqual(expect.arrayContaining(['legend:a', 'legend:c']));
+    });
+
+    it('does not trust letters out of order', () => {
+      const parsed = run('c: Uno', 'a: Dos');
+      expect(parsed.legend).toEqual([]);
+      expect(parsed.unreadable).toEqual(expect.arrayContaining(['legend:a', 'legend:c']));
+    });
+  });
+
+  describe('marcas mezcladas en una fila', () => {
+    const known = { '10': [...A, '14:01'], '20': [...B, '14:02'], '30': [...C, '14:03'], '40': [...D, '14:04'] };
+    const order = ['10', '20', '30', '40'];
+    const run = (...cells: string[]) =>
+      parsePage(
+        table([
+          { code: '10', times: [...A.slice(0, 6), cells[0]] },
+          { code: '20', times: [...B, cells[1]] },
+          { code: '30', times: [...C, cells[2]] },
+          { code: '40', times: [...D, cells[3]] },
+        ]),
+        known,
+        order,
+      );
+
+    it('drops the minority letter of a run', () => {
+      const parsed = run('14:01a', '14:02c', '14:03a', '14:04');
+      expect(parsed.marks.map((m) => `${m.time}${m.mark}`)).toEqual(['14:01a', '14:03a']);
+      expect(parsed.warnings).toEqual(['descartada 14:02c en la parada 20: letra distinta del resto de la fila']);
+    });
+
+    it('drops the whole run on a tie', () => {
+      const parsed = run('14:01a', '14:02c', '14:03', '14:04');
+      expect(parsed.marks).toEqual([]);
+      expect(parsed.warnings).toHaveLength(2);
+    });
+
+    it('keeps different letters in separate runs', () => {
+      const parsed = run('14:01a', '14:02', '14:03c', '14:04c');
+      expect(parsed.marks.map((m) => `${m.time}${m.mark}`)).toEqual(['14:01a', '14:03c', '14:04c']);
+      expect(parsed.warnings).toEqual([]);
+    });
+  });
+
+  it('does not accept an anchor that does not beat the neighbouring stop', () => {
+    // Las paradas 20 y 30 tienen las mismas horas: aunque sus códigos se lean bien, no se sabe cuál es cuál.
+    const same = [...B, '21:39'];
+    const page = table([
+      { code: '10', times: A },
+      { code: '20', times: [...B, '21:39a'] },
+      { code: '30', times: same },
+      { code: '40', times: D },
+    ]);
+    const parsed = parsePage(page, { '10': A, '20': same, '30': same, '40': D }, ['10', '20', '30', '40']);
+    expect(parsed.marks).toEqual([]);
+    expect(parsed.warnings).toEqual(['descartada 21:39a en una columna sin parada identificada']);
   });
 });
