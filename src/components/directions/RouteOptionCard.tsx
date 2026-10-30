@@ -7,7 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { textColourFor } from '@/lib/colour';
-import type { RouteOption } from '@/lib/planner';
+import { isApproximate, type RouteOption } from '@/lib/planner';
 import { directionLabel } from '@/lib/schedule';
 
 interface Props {
@@ -111,7 +111,7 @@ export function RouteOptionCard({ option, selected, onPress }: Props) {
         })}
       </ThemedText>
       <ThemedText type="small" themeColor="textSecondary">
-        {t('directions.approxDistances')}
+        {t(isApproximate(option) ? 'directions.approxDistances' : 'directions.streetDistances')}
       </ThemedText>
     </Pressable>
   );

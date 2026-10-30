@@ -22,7 +22,17 @@ import { distanceMeters } from '@/lib/geo';
 import { boundsOf } from '@/lib/mapLayers';
 import { isOnline } from '@/lib/online';
 import type { Place } from '@/lib/placeSearch';
-import { estimateWalk, legCoords, planTrips, sortOptions, type LatLon, type SortMode } from '@/lib/planner';
+import {
+  candidateStops,
+  estimateWalk,
+  legCoords,
+  planTrips,
+  sortOptions,
+  type LatLon,
+  type PlannerWalks,
+  type SortMode,
+} from '@/lib/planner';
+import { fetchWalks } from '@/lib/walking';
 
 type Connection = 'checking' | 'online' | 'offline';
 type Origin = { kind: 'me' } | { kind: 'place'; place: Place };
@@ -32,6 +42,8 @@ const NO_POSITION = ['denied', 'blocked', 'unavailable', 'nosignal'];
 
 // Si el destino está a menos de esto (en línea recta), se sugiere ir andando.
 const WALK_INSTEAD_METERS = 400;
+// Si tu ubicación se mueve más de esto desde la última petición, se piden otra vez las distancias a pie.
+const REFETCH_METERS = 50;
 // Alto del mapa de resultados.
 const MAP_HEIGHT = 220;
 
@@ -51,6 +63,16 @@ export default function ComoLlego() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // Número de la última comprobación: si llega una respuesta vieja, se ignora.
   const checkId = useRef(0);
+  // Número de la última petición de distancias a pie: las respuestas viejas se descartan.
+  const walkId = useRef(0);
+  // Qué se pidió la última vez (origen, punto de salida y destino), para no repetir peticiones.
+  const lastWalkRequest = useRef<{ key: string; from: LatLon; to: LatLon } | null>(null);
+  // Distancias reales por calles, junto con el origen y el destino para los que se pidieron.
+  const [walkState, setWalkState] = useState<{
+    key: string;
+    to: LatLon;
+    walks: PlannerWalks;
+  } | null>(null);
 
   // Comprueba si hay internet de verdad y guarda el resultado.
   const check = useCallback(async () => {
@@ -95,16 +117,66 @@ export default function ComoLlego() {
     [destination],
   );
   const ready = !pickingOrigin && from !== null && to !== null;
+  // Identifica el origen elegido: "me" para tu ubicación o el id del lugar escrito.
+  const originKey = origin.kind === 'me' ? 'me' : origin.place.id;
+
+  // Al salir de la pantalla se descartan las respuestas de distancias que sigan pendientes.
+  useEffect(
+    () => () => {
+      walkId.current++;
+    },
+    [],
+  );
+
+  // Pide las distancias reales andando a las paradas cercanas al origen y al destino.
+  // Solo se repite si cambia el destino o el origen, o si tu ubicación se mueve más de 50 m;
+  // el reloj de cada minuto no cuenta. Mientras llegan, se enseñan las estimaciones.
+  useEffect(() => {
+    if (!ready) {
+      lastWalkRequest.current = null;
+      walkId.current++;
+      setWalkState(null);
+      return;
+    }
+    const last = lastWalkRequest.current;
+    if (last && last.key === originKey && last.to === to && distanceMeters(last.from, from) <= REFETCH_METERS) return;
+    lastWalkRequest.current = { key: originKey, from, to };
+    const id = ++walkId.current;
+    setWalkState(null); // las distancias anteriores ya no valen
+    Promise.all([
+      fetchWalks(from, candidateStops(data, from), 'from'),
+      fetchWalks(to, candidateStops(data, to), 'to'),
+    ]).then(([fromOrigin, toDestination]) => {
+      // Si mientras tanto cambió el destino o el origen, esta respuesta se ignora.
+      if (id !== walkId.current) return;
+      // Sin respuesta (null) se siguen usando las estimaciones, sin avisar de nada.
+      if (!fromOrigin && !toDestination) return;
+      setWalkState({
+        key: originKey,
+        to,
+        walks: { fromOrigin: fromOrigin ?? undefined, toDestination: toDestination ?? undefined },
+      });
+    });
+  }, [ready, originKey, from, to, data]);
+
+  // Las distancias reales solo valen para el origen y el destino con los que se pidieron.
+  const walks = useMemo(
+    () => (walkState && walkState.key === originKey && walkState.to === to ? walkState.walks : undefined),
+    [walkState, originKey, to],
+  );
 
   // Las opciones de bus de hoy (se recalculan solo si cambian los puntos, los datos o el minuto).
-  const options = useMemo(() => (ready ? planTrips(data, from, to, now) : []), [ready, data, from, to, now]);
+  const options = useMemo(
+    () => (ready ? planTrips(data, from, to, now, { walks }) : []),
+    [ready, data, from, to, now, walks],
+  );
   // Si no hay opciones ahora, se mira desde la medianoche de hoy: si entonces sí había buses, es que
   // ya pasaron todos ("hoy ya no quedan"); si tampoco, ninguna ruta con 1 transbordo une los dos puntos.
   const noRouteAtAll = useMemo(() => {
     if (!ready || options.length > 0) return false;
     const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    return planTrips(data, from, to, midnight).length === 0;
-  }, [ready, options, data, from, to, now]);
+    return planTrips(data, from, to, midnight, { walks }).length === 0;
+  }, [ready, options, data, from, to, now, walks]);
   const sorted = useMemo(() => sortOptions(options, sort), [options, sort]);
   const selected = sorted.find((o) => o.id === selectedId) ?? sorted[0] ?? null;
 

@@ -78,6 +78,13 @@ describe('RouteOptionCard', () => {
     expect(screen.queryByText(/Transbordo en/)).toBeNull();
   });
 
+  it('si todas las distancias son reales, dice "Distancias a pie por calles"', async () => {
+    const real = { ...direct, walkToStop: { ...walk(100), approximate: false }, walkFromStop: { ...walk(60), approximate: false } };
+    await render(<RouteOptionCard option={real} selected={false} onPress={() => {}} />);
+    expect(screen.getByText('Distancias a pie por calles')).toBeTruthy();
+    expect(screen.queryByText('Distancias aproximadas')).toBeNull();
+  });
+
   it('con un transbordo enseña dónde y cuánto se espera', async () => {
     await render(<RouteOptionCard option={withTransfer} selected={false} onPress={() => {}} />);
     expect(screen.getByText('45 min · 160 m andando · 1 transbordo')).toBeTruthy();

@@ -107,6 +107,7 @@ const en: Textos = {
     transfer: 'Transfer at {{stop}}: wait {{minutes}} min',
     alight: 'Get off at {{stop}} at {{time}} ({{meters}} m from your destination)',
     approxDistances: 'Approximate distances',
+    streetDistances: 'Walking distances along streets',
     noBusesToday: 'No more buses today for this trip',
     noRoute: 'No bus options with at most 1 transfer for this trip',
     locating: 'Finding your location…',

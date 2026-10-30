@@ -102,6 +102,7 @@ const es = {
     transfer: 'Transbordo en {{stop}}: espera {{minutes}} min',
     alight: 'Bájate en {{stop}} a las {{time}} (a {{meters}} m del destino)',
     approxDistances: 'Distancias aproximadas',
+    streetDistances: 'Distancias a pie por calles',
     noBusesToday: 'Hoy ya no quedan buses para este trayecto',
     noRoute: 'No hay opciones en bus con como mucho 1 transbordo para este trayecto',
     locating: 'Buscando tu ubicación…',

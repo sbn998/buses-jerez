@@ -6,11 +6,13 @@ import { DataProvider } from '@/data/DataProvider';
 import type { Dataset, Line } from '@/data/schema';
 import { initI18n } from '@/i18n';
 import { isOnline } from '@/lib/online';
+import { fetchWalks } from '@/lib/walking';
 import { type Place, SearchError, searchPlaces } from '@/lib/placeSearch';
 
 import ComoLlego from '../(tabs)/como-llego';
 
 jest.mock('@/lib/online', () => ({ isOnline: jest.fn() }));
+jest.mock('@/lib/walking', () => ({ fetchWalks: jest.fn() }));
 jest.mock('@/lib/placeSearch', () => ({
   ...jest.requireActual('@/lib/placeSearch'),
   searchPlaces: jest.fn(),
@@ -28,6 +30,7 @@ const { getRecorded, resetMock } = jest.requireMock('@maplibre/maplibre-react-na
 
 const mockOnline = isOnline as jest.Mock;
 const mockSearch = searchPlaces as jest.Mock;
+const mockWalks = fetchWalks as jest.Mock;
 
 const luz: Place = { id: 'N1', name: 'Calle Luz', detail: 'Centro', lat: 36.68, lon: -6.13 };
 const plaza: Place = { id: 'N2', name: 'Plaza del Arenal', detail: 'Centro', lat: 36.681, lon: -6.137 };
@@ -86,6 +89,8 @@ beforeEach(() => {
   mockNow = new Date(2026, 9, 28, 10, 0, 0);
   mockOnline.mockReset().mockResolvedValue(true);
   mockSearch.mockReset().mockResolvedValue([luz]);
+  // Por defecto el servicio de rutas a pie no responde (null): se usan las estimaciones.
+  mockWalks.mockReset().mockResolvedValue(null);
   mockLocation = { status: 'ready', coords: { lat: 36.68, lon: -6.13 }, retry: jest.fn() };
 });
 
@@ -269,6 +274,80 @@ describe('pantalla Cómo llego', () => {
       expect(screen.getAllByText(/^Súbete en Parada Origen a las 10:05/)).toHaveLength(2);
       expect(screen.getAllByText(/^Bájate en /)).toHaveLength(2);
       expect(screen.getAllByText('Distancias aproximadas')).toHaveLength(2);
+    });
+
+    // Distancias reales simuladas: del origen a la parada A y de las paradas de bajada al destino.
+    const realWalks = (_o: unknown, _s: unknown, direction: string) =>
+      Promise.resolve(direction === 'from' ? { A: 70 } : { D1: 33, D2: 44 });
+
+    it('uses street distances', async () => {
+      mockWalks.mockImplementation(realWalks);
+      await renderScreen();
+      await pickDestination(lejos);
+      expect(await screen.findAllByText('Distancias a pie por calles')).toHaveLength(2);
+      expect(screen.queryByText('Distancias aproximadas')).toBeNull();
+      expect(screen.getAllByText(/^Súbete en Parada Origen a las 10:05 \(a 70 m\)/)).toHaveLength(2);
+      expect(screen.getByText('Bájate en Parada Media a las 10:10 (a 44 m del destino)')).toBeTruthy();
+    });
+
+    it('falls back when walking fails', async () => {
+      mockWalks.mockResolvedValue(null);
+      await renderScreen();
+      await pickDestination(lejos);
+      expect(mockWalks).toHaveBeenCalledTimes(2);
+      expect(screen.getAllByText('Distancias aproximadas')).toHaveLength(2);
+      expect(screen.getAllByTestId(/^route-option-/)).toHaveLength(2);
+    });
+
+    it('does not refetch on minute tick', async () => {
+      mockWalks.mockImplementation(realWalks);
+      const view = await renderScreen();
+      await pickDestination(lejos);
+      await screen.findAllByText('Distancias a pie por calles');
+      expect(mockWalks).toHaveBeenCalledTimes(2);
+      mockNow = new Date(2026, 9, 28, 10, 1, 0);
+      await view.rerender(
+        <DataProvider value={{ data: screenData, source: 'bundled', checkedAt: null }}>
+          <ComoLlego />
+        </DataProvider>,
+      );
+      expect(mockWalks).toHaveBeenCalledTimes(2);
+      expect(screen.getAllByText('Distancias a pie por calles')).toHaveLength(2);
+    });
+
+    it('cambiar de destino vuelve a pedir, y una respuesta vieja que llega tarde se descarta', async () => {
+      // Las dos primeras llamadas (destino "lejos") quedan colgadas hasta que se decida.
+      const late: ((v: Record<string, number>) => void)[] = [];
+      mockWalks.mockImplementationOnce(() => new Promise((r) => late.push(r)));
+      mockWalks.mockImplementationOnce(() => new Promise((r) => late.push(r)));
+      await renderScreen();
+      await pickDestination(lejos);
+      expect(mockWalks).toHaveBeenCalledTimes(2);
+      await fireEvent.press(screen.getByRole('button', { name: 'Cambiar destino' }));
+      mockWalks.mockResolvedValue(null);
+      await pickDestination(plaza);
+      expect(mockWalks).toHaveBeenCalledTimes(4);
+      // Llegan tarde las respuestas del destino anterior: no cambian lo que se ve.
+      await act(async () => late.forEach((r) => r({ A: 10, D1: 10, D2: 10 })));
+      expect(screen.queryByText('Distancias a pie por calles')).toBeNull();
+    });
+
+    it('con origen "tu ubicación", moverse 30 m no vuelve a pedir y 80 m sí', async () => {
+      const view = await renderScreen();
+      await pickDestination(lejos);
+      expect(mockWalks).toHaveBeenCalledTimes(2);
+      const rerenderAt = (lat: number) => {
+        mockLocation = { ...mockLocation, coords: { lat, lon: -6.13 } };
+        return view.rerender(
+          <DataProvider value={{ data: screenData, source: 'bundled', checkedAt: null }}>
+            <ComoLlego />
+          </DataProvider>,
+        );
+      };
+      await rerenderAt(36.68 + 30 / 111_195); // unos 30 m al norte
+      expect(mockWalks).toHaveBeenCalledTimes(2);
+      await rerenderAt(36.68 + 80 / 111_195); // unos 80 m
+      expect(mockWalks).toHaveBeenCalledTimes(4);
     });
 
     it('por defecto va ordenado por Más rápido; Menos andar reordena las tarjetas', async () => {
