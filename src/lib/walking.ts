@@ -43,11 +43,12 @@ export async function fetchWalks(
     });
     if (!res.ok) return null;
     const body = (await res.json()) as { meters?: (number | null)[] };
-    if (!Array.isArray(body.meters)) return null;
+    // La respuesta debe traer un valor por parada enviada; si no, no nos fiamos.
+    if (!Array.isArray(body.meters) || body.meters.length !== sent.length) return null;
     const result: Record<string, number> = {};
     sent.forEach((stop, i) => {
       const m = body.meters![i];
-      if (typeof m === 'number') result[stop.code] = m;
+      if (typeof m === 'number' && Number.isFinite(m) && m >= 0) result[stop.code] = m;
     });
     return result;
   } catch {

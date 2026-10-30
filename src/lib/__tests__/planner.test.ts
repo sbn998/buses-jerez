@@ -400,6 +400,19 @@ describe('distancias reales (walks)', () => {
     expect(con.arrivalMinutes).toBe(10 * 60 + 20 + 10);
   });
 
+  it('un paseo real mas largo hace perder el bus que la estimacion alcanzaba', () => {
+    const data = mundo();
+    poner(data, '1', 'lab', [['10:04', '10:12', '10:22'], ['10:20', '10:28', '10:38']]);
+    const orig = pt(0, -200); // estimacion: 260 m = 4 min, llega a las 10:04 y alcanza el primero
+    const sin = planTrips(data, orig, pt(4000, 0), miercoles(10, 0))[0];
+    expect(sin.legs[0].departure).toBe('10:04');
+    const con = planTrips(data, orig, pt(4000, 0), miercoles(10, 0), {
+      walks: { fromOrigin: { P1: 480 } }, // 6 min: ya no llega al de las 10:04
+    })[0];
+    expect(con.legs[0].departure).toBe('10:20');
+    expect(con.arrivalMinutes).toBeGreaterThan(sin.arrivalMinutes);
+  });
+
   it('sin walks sale igual que antes', () => {
     const data = horarios();
     const a = planTrips(data, pt(0, -200), pt(4000, 0), miercoles(10, 0));

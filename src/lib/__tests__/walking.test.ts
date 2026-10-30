@@ -44,10 +44,33 @@ describe('fetchWalks', () => {
   it('manda como mucho 10 paradas', async () => {
     const { fetchWalks } = cargar('https://worker.test/walk');
     const muchas = Array.from({ length: 12 }, (_, i) => parada(`P${i}`, 36.68, -6.13));
-    const fetchFn = jest.fn().mockResolvedValue(respuesta(200, { meters: muchas.map(() => 1) }));
+    const fetchFn = jest.fn().mockResolvedValue(respuesta(200, { meters: muchas.slice(0, 10).map(() => 1) }));
     const res = await fetchWalks(origen, muchas, 'to', fetchFn);
     expect(JSON.parse(fetchFn.mock.calls[0][1].body).points).toHaveLength(10);
     expect(Object.keys(res!)).toHaveLength(10);
+  });
+
+  it('manda direction "to" y el origen tal cual', async () => {
+    const { fetchWalks } = cargar('https://worker.test/walk');
+    const fetchFn = jest.fn().mockResolvedValue(respuesta(200, { meters: [1, 2, 3] }));
+    await fetchWalks(origen, paradas, 'to', fetchFn);
+    const cuerpo = JSON.parse(fetchFn.mock.calls[0][1].body);
+    expect(cuerpo.direction).toBe('to');
+    expect(cuerpo.origin).toEqual([-6.13, 36.68]);
+  });
+
+  it('da null si meters no tiene un valor por parada', async () => {
+    const { fetchWalks } = cargar('https://worker.test/walk');
+    const corto = jest.fn().mockResolvedValue(respuesta(200, { meters: [420] }));
+    expect(await fetchWalks(origen, paradas, 'from', corto)).toBeNull();
+    const noArray = jest.fn().mockResolvedValue(respuesta(200, { meters: 5 }));
+    expect(await fetchWalks(origen, paradas, 'from', noArray)).toBeNull();
+  });
+
+  it('descarta valores negativos o no numericos', async () => {
+    const { fetchWalks } = cargar('https://worker.test/walk');
+    const fetchFn = jest.fn().mockResolvedValue(respuesta(200, { meters: [-5, 'x', 0] }));
+    expect(await fetchWalks(origen, paradas, 'from', fetchFn)).toEqual({ S3: 0 });
   });
 
   it('da null con un estado 500', async () => {

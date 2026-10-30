@@ -198,7 +198,7 @@ export function planTrips(
   }
 
   // Las paradas que tienen alguna línea, en una lista para recorrerlas rápido.
-  const servedStops = [...visits.keys()].map((c) => data.stops[c]);
+  const servedStops = servedStopsOf(data);
 
   // Las claves de caché mezclan línea, posiciones y minuto de salida; el minuto cabe siempre en este margen.
   const KEY_SPAN = 100000;
@@ -262,7 +262,6 @@ export function planTrips(
       arrival: fila[j] as TimeOfDay,
     };
   }
-
 
   // Paradas cercanas a un transbordo (la misma parada con paseo null, y las que estén a ≤ radio).
   const transferCache = new Map<string, { stop: Stop; walk: WalkEstimate | null }[]>();
