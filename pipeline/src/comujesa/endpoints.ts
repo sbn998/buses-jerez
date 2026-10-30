@@ -15,6 +15,9 @@ export const TIMES_URL = BASE + '/autobuses-urbanos/paradas-y-horarios/listar-b'
 export const linePageUrl = (id: string) =>
   BASE + '/autobuses-urbanos/lineas-paradas-y-horarios/linea-' + id;
 
+/** Página «Información útil» de Comujesa, donde están enlazados los PDF de horarios. */
+export const INFO_URL = BASE + '/autobuses-urbanos/inf-util';
+
 /** Descarga del mapa oficial de una línea (Google My Maps) en formato KML. */
 export const kmlUrl = (mid: string) =>
   'https://www.google.com/maps/d/kml?mid=' + mid + '&forcekml=1';

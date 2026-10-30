@@ -98,3 +98,15 @@ for fontstack in "Noto Sans Regular" "Noto Sans Bold"; do
 done
 (cd fonts-src && zip -qr ../fonts.zip .)
 ```
+
+## PDF de horarios (descubrimiento y OCR)
+
+Comujesa publica sus horarios oficiales como 57 PDF (`LINEA_<n>_{LAB,SAB,FES}.pdf`, más `LINEA_15_NJ_*`). Sus direcciones no se escriben a mano: `src/pdf/sources.ts` las lee de los enlaces de la página «Información útil» (`INFO_URL` en `src/comujesa/endpoints.ts`), porque la carpeta cambia en verano. Si salen menos de 54 (`MIN_PDF_SOURCES`), el proceso falla en vez de publicar. Cada PDF es una sola imagen JPEG; `src/pdf/extractJpeg.ts` copia sus bytes sin librerías de PDF.
+
+Para leer la imagen con OCR (`src/pdf/ocr.ts`, con `sharp` y `tesseract.js`) hay un script que guarda el resultado como JSON, usado como fixture de las pruebas (`test/fixtures/ocr/`):
+
+```bash
+npm run ocr-fixture -- <url-del-pdf> <nombre>   # tarda unos 20 s; la primera vez descarga el idioma `spa`
+```
+
+Las pruebas normales no ejecutan el OCR. La prueba de humo sí, solo con `OCR_SMOKE=1 npx vitest run test/ocr.smoke.test.ts`.
