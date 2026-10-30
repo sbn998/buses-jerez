@@ -15,6 +15,7 @@
 !/docs/
 !/README.md
 !/pipeline/
+!/worker/
 !/.github/
 !/__mocks__/
 
@@ -36,6 +37,8 @@ credentials.json
 
 # Generados o locales dentro de carpetas permitidas.
 node_modules/
+.wrangler/
+.dev.vars
 .expo/
 dist/
 web-build/

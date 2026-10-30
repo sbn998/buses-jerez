@@ -1,0 +1,5 @@
+# Configuración del Worker de Cloudflare que hace de intermediario con OpenRouteService.
+# La clave ORS_API_KEY NO va aquí: se guarda como secreto con `npx wrangler secret put ORS_API_KEY`.
+name = "buses-jerez-walk"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
