@@ -119,14 +119,14 @@ Los PDF dicen cosas que el buscador de Comujesa no dice: por ejemplo que un auto
 2. Hace una petición `HEAD` a cada PDF y la compara con la caché (`out/ocr.json`, que se publica y se vuelve a descargar de `https://sbn998.github.io/buses-jerez/ocr.json`; 404 = vacía). Si `Last-Modified` y `Content-Length` coinciden, se reutiliza el resultado y no se descarga nada. Si el `HEAD` falla y hay caché, también se reutiliza (con un aviso).
 3. Los que han cambiado se descargan, se calcula su `sha256` y se leen con OCR (un solo worker para todos; la primera vez tarda unos 20-25 minutos, el día a día casi nada).
 4. `parsePage` saca las horas marcadas, la leyenda y las fechas; `buildNotes` agrupa las marcas por viaje y crea las notas (`Line.notes`). Una "Retirada en X" guarda en `endsAt` el código de la parada X y pone a `null` las horas del viaje posteriores a la última parada marcada.
-5. **Bloquea** la publicación si un PDF leído hoy tiene `unreadable` (leyenda o fechas sin resolver) o si una "Retirada en X" no coincide con exactamente una parada de la línea, o si los PDF no coinciden en las fechas de validez, o si la fecha de «Información útil» no es la del PDF. Las marcas dudosas descartadas, o que no están en ningún viaje, solo salen como avisos. Los PDF reutilizados de la caché ya se validaron el día que se leyeron.
+5. **No bloquea** por lo que no se entiende: se salta con un aviso y nunca se publica una nota dudosa (como mucho falta alguna). Se saltan: las notas de una letra sin leyenda, las "Retirada en X" que no coinciden con exactamente una parada de la línea, y las marcas dudosas o que no están en ningún viaje. El periodo es el que dicen la mayoría de los PDF; los PDF con otras fechas (por ejemplo, uno del verano que se quedó sin cambiar) se saltan enteros. Si hay empate, ningún PDF tiene fechas legibles o la fecha de «Información útil» no es la de los PDF, no se publica periodo. Lo único que bloquea es encontrar menos de 54 PDF (la web de Comujesa habrá cambiado).
 6. El periodo (`period`: nombre y fechas) va en `data.json` y la caché en `out/ocr.json` (el workflow `data.yml` ya publica toda la carpeta `out/`).
 
 Para probar en el ordenador sin repetir el OCR, `OCR_CACHE_FILE=ruta/ocr-local.json npm run build-data` lee y escribe la caché en ese archivo en vez de usar la publicada.
 
 ### `ocr-manual.json`
 
-Si el OCR no entiende un PDF concreto, se puede escribir su resultado a mano en `pipeline/ocr-manual.json` (empieza como `{}`). Es un objeto con el nombre del archivo como clave y el mismo formato que una entrada de `ocr.json`:
+Si el OCR no entiende un PDF concreto (sale en los avisos) y quieres sus notas, se puede escribir su resultado a mano en `pipeline/ocr-manual.json` (empieza como `{}`). Es un objeto con el nombre del archivo como clave y el mismo formato que una entrada de `ocr.json`:
 
 ```json
 {

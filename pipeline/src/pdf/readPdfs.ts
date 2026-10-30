@@ -3,8 +3,10 @@
  * las notas de viaje (letras como "Retirada en ...") y el periodo de validez.
  *
  * Para cada PDF: se mira si ha cambiado (HEAD), y solo si hace falta se descarga y se lee con OCR;
- * si no, se reutiliza el resultado guardado (ocr.json). Un PDF leído hoy que no se entiende
- * bloquea la publicación; uno reutilizado ya se validó el día en que se leyó.
+ * si no, se reutiliza el resultado guardado (ocr.json).
+ * Un PDF que no se entiende del todo NO bloquea la publicación: se salta lo que no se pudo leer
+ * (sus notas o su fecha) y se deja un aviso. Nunca se publica una nota dudosa; como mucho falta alguna.
+ * Solo bloquea que haya muy pocos PDF (señal de que la web de Comujesa ha cambiado).
  */
 import type { DayType, Line, SchedulePeriod, Stop } from '../../../src/data/schema';
 import { createOcr } from './ocr';
@@ -60,7 +62,7 @@ export async function readPdfs(input: ReadPdfsInput): Promise<ReadPdfsResult> {
   }
 
   /** Resultado de cada PDF para agruparlo después por línea y tipo de día. */
-  const results: { source: PdfSource; parsed: ParsedPdf; fresh: boolean }[] = [];
+  const results: { source: PdfSource; parsed: ParsedPdf }[] = [];
   let ocr: Awaited<ReturnType<typeof createOcr>> | null = null;
 
   try {
@@ -81,7 +83,6 @@ export async function readPdfs(input: ReadPdfsInput): Promise<ReadPdfsResult> {
         }
 
         let entry: CachedPdf | null = null;
-        let fresh = false;
         if (decision === 'reuse') {
           entry = cached;
           if (!head) warnings.push(`${source.file}: HEAD failed, cached result reused without checking`);
@@ -101,7 +102,6 @@ export async function readPdfs(input: ReadPdfsInput): Promise<ReadPdfsResult> {
             const manualEntry = manual[source.file];
             if (manualEntry && manualEntry.sha256 === hash) {
               entry = { ...manualEntry, file: source.file, ...headers, sha256: hash };
-              fresh = true;
               console.log(`${source.file}: resultado manual aplicado`);
             } else if (cached && cached.sha256 === hash) {
               // El PDF no ha cambiado aunque las cabeceras sí: se reutiliza y se actualizan las cabeceras.
@@ -132,7 +132,6 @@ export async function readPdfs(input: ReadPdfsInput): Promise<ReadPdfsResult> {
               }
               const known = Object.fromEntries(Object.entries(line.timesByStop).map(([c, t]) => [c, t[source.dayType]]));
               entry = { file: source.file, ...headers, sha256: hash, result: parsePage(page, known, line.stopCodes) };
-              fresh = true;
               console.log(`${source.file}: leído con OCR en ${Math.round((Date.now() - started) / 1000)} s (${i + 1}/${sources.length})`);
             }
           }
@@ -141,10 +140,10 @@ export async function readPdfs(input: ReadPdfsInput): Promise<ReadPdfsResult> {
 
         cache[source.file] = entry;
         input.onProgress?.(cache);
-        results.push({ source, parsed: entry.result, fresh });
-        // Lo que se pudo leer mal y no se puede adivinar bloquea; las marcas descartadas solo avisan.
-        if (fresh && entry.result.unreadable.length > 0) {
-          errors.push(`${source.file}: unreadable ${entry.result.unreadable.join(', ')}`);
+        results.push({ source, parsed: entry.result });
+        // Lo que no se pudo leer solo avisa: esas notas o esas fechas se quedan fuera.
+        if (entry.result.unreadable.length > 0) {
+          warnings.push(`${source.file}: unreadable ${entry.result.unreadable.join(', ')} (skipped)`);
         }
         for (const w of entry.result.warnings) warnings.push(`${source.file}: ${w}`);
       } catch (err) {
@@ -155,9 +154,15 @@ export async function readPdfs(input: ReadPdfsInput): Promise<ReadPdfsResult> {
     await ocr?.close();
   }
 
+  // Periodo de validez (ver pickPeriod): los PDF con otras fechas se saltan enteros.
+  const picked = pickPeriod(results.map((r) => ({ file: r.source.file, parsed: r.parsed })), input.startDate);
+  warnings.push(...picked.warnings);
+  const period = picked.period;
+  const usable = results.filter((r) => !picked.skipped.includes(r.source.file));
+
   // Notas de viaje por línea y tipo de día (la línea 15 tiene dos PDF por tipo de día).
   const lines = input.lines.map((line) => {
-    const mine = results.filter((r) => r.source.lineId === line.id);
+    const mine = usable.filter((r) => r.source.lineId === line.id);
     if (mine.length === 0) return line;
     marksByLine[line.id] = mine.reduce((n, r) => n + r.parsed.marks.length, 0);
     const trips = { ...line.trips };
@@ -165,8 +170,8 @@ export async function readPdfs(input: ReadPdfsInput): Promise<ReadPdfsResult> {
     for (const day of DAY_TYPES) {
       const group = mine.filter((r) => r.source.dayType === day);
       const built = buildNotes(line, day, group.map((r) => r.parsed), stops);
-      // Si todos los PDF son reutilizados, ya se validaron el día que se leyeron: solo avisamos.
-      (group.some((r) => r.fresh) ? errors : warnings).push(...built.errors);
+      // Las notas que no cuadran (letra sin leyenda, "Retirada en" sin parada) ya se han saltado: solo avisamos.
+      warnings.push(...built.errors.map((e) => `${e} (skipped)`));
       warnings.push(...built.warnings);
       trips[day] = built.trips;
       notes[day] = built.notes;
@@ -175,25 +180,42 @@ export async function readPdfs(input: ReadPdfsInput): Promise<ReadPdfsResult> {
     return hasNotes ? { ...line, trips, notes } : { ...line, trips };
   });
 
-  // Periodo de validez: todos los PDF con fechas tienen que coincidir.
-  const dated = results.filter((r) => r.parsed.validFrom && r.parsed.validTo);
-  const distinct = [...new Set(dated.map((r) => `${r.parsed.validFrom}..${r.parsed.validTo}`))];
-  let period: SchedulePeriod | undefined;
-  if (distinct.length > 1) {
-    errors.push(`the PDFs do not agree on the validity dates: ${distinct.join(' | ')}`);
-  } else if (dated.length > 0) {
-    const { validFrom, validTo } = dated[0].parsed;
-    const names = new Map<string, number>();
-    for (const r of dated) if (r.parsed.periodName) names.set(r.parsed.periodName, (names.get(r.parsed.periodName) ?? 0) + 1);
-    const name = [...names.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
-    if (!name) errors.push('no PDF gives the name of the period');
-    else period = { name, validFrom: validFrom as string, validTo: validTo as string };
-    if (input.startDate !== null && input.startDate !== validFrom) {
-      errors.push(`the start date on the info page (${input.startDate}) differs from the PDFs (${validFrom})`);
-    }
-  } else {
-    errors.push('no PDF has readable validity dates');
-  }
-
   return { lines, period, cache, errors, warnings, marksByLine };
+}
+
+/**
+ * Elige el periodo de validez: el que dicen la mayoría de los PDF. Los que dicen otro (por ejemplo, un PDF
+ * del verano que se quedó sin cambiar en la web) van en `skipped`: sus horas marcadas serían de otro horario.
+ * Si hay empate, no hay nombre de periodo o la página «Información útil» anuncia otra fecha de inicio,
+ * no se publica periodo (solo un aviso).
+ */
+export function pickPeriod(
+  pdfs: { file: string; parsed: ParsedPdf }[],
+  startDate: string | null,
+): { period?: SchedulePeriod; skipped: string[]; warnings: string[] } {
+  const warnings: string[] = [];
+  const dated = pdfs.filter((r) => r.parsed.validFrom && r.parsed.validTo);
+  const key = (r: (typeof pdfs)[number]) => `${r.parsed.validFrom}..${r.parsed.validTo}`;
+  const votes = new Map<string, number>();
+  for (const r of dated) votes.set(key(r), (votes.get(key(r)) ?? 0) + 1);
+  const ranked = [...votes.entries()].sort((a, b) => b[1] - a[1]);
+  if (ranked.length === 0) return { skipped: [], warnings: ['no PDF has readable validity dates: no period published'] };
+  if (ranked.length > 1 && ranked[0][1] === ranked[1][1]) {
+    const list = ranked.map(([k, n]) => `${k} x${n}`).join(' | ');
+    return { skipped: [], warnings: [`the PDFs do not agree on the validity dates (tie): ${list}; no period published`] };
+  }
+  const winner = ranked[0][0];
+  const others = dated.filter((r) => key(r) !== winner);
+  for (const r of others) warnings.push(`${r.file}: validity ${key(r)} differs from the other PDFs (${winner}), PDF skipped`);
+  const skipped = others.map((r) => r.file);
+  const winners = dated.filter((r) => key(r) === winner);
+  const { validFrom, validTo } = winners[0].parsed;
+  const names = new Map<string, number>();
+  for (const r of winners) if (r.parsed.periodName) names.set(r.parsed.periodName, (names.get(r.parsed.periodName) ?? 0) + 1);
+  const name = [...names.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+  if (!name) return { skipped, warnings: [...warnings, 'no PDF gives the name of the period: no period published'] };
+  if (startDate !== null && startDate !== validFrom) {
+    return { skipped, warnings: [...warnings, `the start date on the info page (${startDate}) differs from the PDFs (${validFrom}): no period published`] };
+  }
+  return { period: { name, validFrom: validFrom as string, validTo: validTo as string }, skipped, warnings };
 }
