@@ -4,8 +4,8 @@ name = "buses-jerez-walk"
 main = "src/index.ts"
 compatibility_date = "2026-10-01"
 
-# Caché de resultados (Workers KV). En la Task 4 se sustituye PON_AQUI_EL_ID por el id que
-# imprime `npx wrangler kv namespace create WALK_CACHE`. Ese id no es secreto.
+# Caché de resultados (Workers KV). El id es el que imprimió
+# `npx wrangler kv namespace create WALK_CACHE`. Ese id no es secreto.
 [[kv_namespaces]]
 binding = "WALK_CACHE"
-id = "PON_AQUI_EL_ID"
+id = "fa77392c2416492ba13b29126dd3d241"
