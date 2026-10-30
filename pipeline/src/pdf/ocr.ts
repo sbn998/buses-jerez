@@ -33,6 +33,18 @@ export function ocrScale(width: number, height: number): number {
   return Math.min(MAX_SCALE, Math.sqrt(MAX_OCR_PIXELS / (width * height)));
 }
 
+/** Parte de arriba de la imagen que se lee una segunda vez (donde están las fechas de validez). */
+const HEADER_BAND = 0.2;
+
+/** Dos palabras "son la misma" si sus cajas se solapan en más de la mitad de la más pequeña. */
+function overlaps(a: OcrWord, b: OcrWord): boolean {
+  const w = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0);
+  const h = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0);
+  if (w <= 0 || h <= 0) return false;
+  const smaller = Math.min((a.x1 - a.x0) * (a.y1 - a.y0), (b.x1 - b.x0) * (b.y1 - b.y0));
+  return w * h > smaller / 2;
+}
+
 /**
  * Crea un lector que se puede reutilizar para varios PDF (arrancar tesseract es lento).
  * Al terminar hay que llamar a `close()`.
@@ -47,6 +59,31 @@ export async function createOcr(): Promise<{
     preserve_interword_spaces: '1',
   });
 
+  /** Lee una imagen y devuelve sus palabras (recorre bloques, párrafos y líneas). */
+  async function readWords(image: Buffer): Promise<OcrWord[]> {
+    const { data } = await worker.recognize(image, {}, { blocks: true });
+    const words: OcrWord[] = [];
+    for (const block of data.blocks ?? []) {
+      for (const paragraph of block.paragraphs) {
+        for (const line of paragraph.lines) {
+          for (const w of line.words) {
+            const text = w.text.trim();
+            if (!text) continue;
+            words.push({
+              text,
+              x0: Math.round(w.bbox.x0),
+              y0: Math.round(w.bbox.y0),
+              x1: Math.round(w.bbox.x1),
+              y1: Math.round(w.bbox.y1),
+              confidence: Math.round(w.confidence),
+            });
+          }
+        }
+      }
+    }
+    return words;
+  }
+
   return {
     async read(jpeg) {
       const meta = await sharp(jpeg).metadata();
@@ -57,26 +94,24 @@ export async function createOcr(): Promise<{
         .png()
         .toBuffer();
       const out = await sharp(png).metadata();
-      const { data } = await worker.recognize(png, {}, { blocks: true });
+      const words = await readWords(png);
 
-      // Recorremos bloques → párrafos → líneas → palabras y nos quedamos con las palabras.
-      const words: OcrWord[] = [];
-      for (const block of data.blocks ?? []) {
-        for (const paragraph of block.paragraphs) {
-          for (const line of paragraph.lines) {
-            for (const w of line.words) {
-              const text = w.text.trim();
-              if (!text) continue;
-              words.push({
-                text,
-                x0: Math.round(w.bbox.x0),
-                y0: Math.round(w.bbox.y0),
-                x1: Math.round(w.bbox.x1),
-                y1: Math.round(w.bbox.y1),
-                confidence: Math.round(w.confidence),
-              });
-            }
+      // Segunda pasada solo sobre la cabecera (el 20 % de arriba), con otro modo de lectura:
+      // el modo "texto suelto" se salta los recuadros con las fechas de validez ("Horarios válidos desde...").
+      const bandHeight = Math.round((out.height ?? 0) * HEADER_BAND);
+      if (bandHeight > 0) {
+        await worker.setParameters({ tessedit_pageseg_mode: PSM.AUTO });
+        try {
+          const band = await sharp(png)
+            .extract({ left: 0, top: 0, width: out.width ?? 0, height: bandHeight })
+            .png()
+            .toBuffer();
+          for (const w of await readWords(band)) {
+            // Solo añadimos lo que la primera pasada no había leído ya en ese mismo sitio.
+            if (!words.some((o) => overlaps(o, w))) words.push(w);
           }
+        } finally {
+          await worker.setParameters({ tessedit_pageseg_mode: PSM.SPARSE_TEXT });
         }
       }
       return { width: out.width ?? 0, height: out.height ?? 0, words };
