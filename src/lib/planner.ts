@@ -1,7 +1,8 @@
 // Planificador de "Cómo llego": dado un origen, un destino y la hora de ahora, busca
 // cómo ir en autobús (directo o con 1 transbordo) usando solo los horarios de hoy.
 // Es lógica pura: no hay pantallas ni red, así que funciona sin internet y se puede probar.
-// Los metros andando son una estimación (línea recta × 1,3), por eso van marcados como aproximados.
+// Los metros andando son una estimación (línea recta × 1,3) y van marcados como aproximados,
+// salvo que se le pasen distancias reales por calles (opción `walks`).
 import type { Dataset, Line, Stop, TimeOfDay } from '@/data/schema';
 import { distanceMeters, walkingMinutes } from '@/lib/geo';
 import { dayTypeFor, minutesOfDay } from '@/lib/schedule';
@@ -9,12 +10,23 @@ import { dayTypeFor, minutesOfDay } from '@/lib/schedule';
 /** Un punto del mapa. */
 export type LatLon = { lat: number; lon: number };
 
-/** Un trozo andando: siempre es una estimación, nunca una medida exacta. */
+/** Un trozo andando: estimación (approximate = true) o distancia real por calles (false). */
 export interface WalkEstimate {
   meters: number;
   minutes: number;
-  approximate: true;
+  approximate: boolean;
 }
+
+/** Distancias reales andando (metros) por código de parada, si se han podido pedir. */
+export interface PlannerWalks {
+  /** Del origen a cada parada candidata. */
+  fromOrigin?: Record<string, number>;
+  /** De cada parada candidata al destino. */
+  toDestination?: Record<string, number>;
+}
+
+/** Opciones de planTrips: los valores por defecto se pueden cambiar y se pueden dar distancias reales. */
+export type PlannerOptions = Partial<typeof PLANNER_DEFAULTS> & { walks?: PlannerWalks };
 
 /** Un tramo en bus: se sube en `from` (índice `fromIndex` de la línea) y se baja en `to`. */
 export interface BusLeg {
@@ -81,6 +93,43 @@ export function estimateWalk(
   return { meters, minutes: walkingMinutes(meters), approximate: true };
 }
 
+/** Paradas cercanas a un punto (en línea recta, de la más cercana a la más lejana). */
+function nearestStops(served: Stop[], point: LatLon, o: typeof PLANNER_DEFAULTS): Stop[] {
+  const todas = served.map((stop) => ({ stop, d: distanceMeters(point, stop) }));
+  todas.sort((a, b) => a.d - b.d);
+  const cerca = todas.filter((x) => x.d <= o.maxWalkMeters).slice(0, o.maxStopsPerEnd);
+  const elegidas = cerca.length > 0 ? cerca : todas.slice(0, o.fallbackStops);
+  return elegidas.map((x) => x.stop);
+}
+
+/** Las paradas que tienen alguna línea con datos, sin repetir y en orden de aparición. */
+function servedStopsOf(data: Dataset): Stop[] {
+  const codes = new Set<string>();
+  for (const line of data.lines) for (const code of line.stopCodes) if (data.stops[code]) codes.add(code);
+  return [...codes].map((c) => data.stops[c]);
+}
+
+/**
+ * Las paradas candidatas cerca de un punto: las mismas que usa `planTrips` por dentro.
+ * Sirve para saber a qué paradas pedir la distancia real andando antes de planificar.
+ */
+export function candidateStops(
+  data: Dataset,
+  point: LatLon,
+  options: Partial<typeof PLANNER_DEFAULTS> = {},
+): Stop[] {
+  return nearestStops(servedStopsOf(data), point, { ...PLANNER_DEFAULTS, ...options });
+}
+
+/** ¿Alguno de los tramos andando de la opción es una estimación? */
+export function isApproximate(option: RouteOption): boolean {
+  return (
+    option.walkToStop.approximate ||
+    option.walkFromStop.approximate ||
+    (option.transferWalk?.approximate ?? false)
+  );
+}
+
 // Una parada candidata en un extremo del viaje, con lo que cuesta llegar a ella andando.
 interface Candidate {
   stop: Stop;
@@ -110,9 +159,10 @@ export function planTrips(
   from: LatLon,
   to: LatLon,
   now: Date,
-  options: Partial<typeof PLANNER_DEFAULTS> = {},
+  options: PlannerOptions = {},
 ): RouteOption[] {
-  const o = { ...PLANNER_DEFAULTS, ...options };
+  const { walks, ...overrides } = options;
+  const o = { ...PLANNER_DEFAULTS, ...overrides };
   const dayType = dayTypeFor(now, data.holidays);
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
 
@@ -132,18 +182,23 @@ export function planTrips(
     });
   });
 
-  /** Paradas candidatas cerca de un punto; si no hay ninguna en el radio, las más cercanas. */
-  function candidates(point: LatLon): Candidate[] {
-    const todas: { stop: Stop; d: number }[] = [];
-    for (const code of visits.keys()) {
-      const stop = data.stops[code];
-      todas.push({ stop, d: distanceMeters(point, stop) });
-    }
-    todas.sort((a, b) => a.d - b.d);
-    const cerca = todas.filter((x) => x.d <= o.maxWalkMeters).slice(0, o.maxStopsPerEnd);
-    const elegidas = cerca.length > 0 ? cerca : todas.slice(0, o.fallbackStops);
-    return elegidas.map((x) => ({ stop: x.stop, walk: estimateWalk(point, x.stop, o.detourFactor) }));
+  /**
+   * Paradas candidatas cerca de un punto. Si hay distancia real para una parada se usa;
+   * si no, la estimación en línea recta. La selección siempre es en línea recta.
+   */
+  function candidates(point: LatLon, real?: Record<string, number>): Candidate[] {
+    return nearestStops(servedStops, point, o).map((stop) => {
+      const meters = real?.[stop.code];
+      const walk: WalkEstimate =
+        meters === undefined
+          ? estimateWalk(point, stop, o.detourFactor)
+          : { meters, minutes: walkingMinutes(meters), approximate: false };
+      return { stop, walk };
+    });
   }
+
+  // Las paradas que tienen alguna línea, en una lista para recorrerlas rápido.
+  const servedStops = [...visits.keys()].map((c) => data.stops[c]);
 
   // Las claves de caché mezclan línea, posiciones y minuto de salida; el minuto cabe siempre en este margen.
   const KEY_SPAN = 100000;
@@ -208,8 +263,6 @@ export function planTrips(
     };
   }
 
-  // Las paradas que tienen alguna línea, en una lista para recorrerlas rápido.
-  const servedStops = [...visits.keys()].map((c) => data.stops[c]);
 
   // Paradas cercanas a un transbordo (la misma parada con paseo null, y las que estén a ≤ radio).
   const transferCache = new Map<string, { stop: Stop; walk: WalkEstimate | null }[]>();
@@ -232,8 +285,8 @@ export function planTrips(
     return lista;
   }
 
-  const origins = candidates(from);
-  const dests = candidates(to);
+  const origins = candidates(from, walks?.fromOrigin);
+  const dests = candidates(to, walks?.toDestination);
 
   // Para el lado del destino: por línea, dónde se puede bajar (parada candidata e índice).
   const destByLine = new Map<number, { dst: Candidate; index: number }[]>();

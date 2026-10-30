@@ -3,7 +3,9 @@
 import type { Dataset, DayType, Line, Stop, TimeOfDay } from '@/data/schema';
 import { walkingMinutes } from '@/lib/geo';
 import {
+  candidateStops,
   estimateWalk,
+  isApproximate,
   legCoords,
   planTrips,
   sortOptions,
@@ -365,5 +367,73 @@ describe('legCoords', () => {
       [data.stops.P3.lon, data.stops.P3.lat],
     ]);
     expect(legCoords({ ...leg, fromIndex: 1, toIndex: 2 }, data)).toHaveLength(2);
+  });
+});
+
+describe('distancias reales (walks)', () => {
+  const horarios = () => {
+    const data = mundo();
+    poner(data, '1', 'lab', [['10:02', '10:10', '10:20'], ['10:10', '10:18', '10:28']]);
+    return data;
+  };
+
+  it('usa los metros reales del origen y recalcula la llegada', () => {
+    const data = horarios();
+    const sin = planTrips(data, pt(0, -200), pt(4000, 0), miercoles(10, 0))[0];
+    const con = planTrips(data, pt(0, -200), pt(4000, 0), miercoles(10, 0), {
+      walks: { fromOrigin: { P1: 420 } },
+    })[0];
+    expect(con.walkToStop).toEqual({ meters: 420, minutes: walkingMinutes(420), approximate: false });
+    // Sin real: 4 min andando (llega 10:04, sube a las 10:10). Con real: 6 min (sube a las 10:10).
+    expect(sin.firstWaitMinutes).toBe(6);
+    expect(con.firstWaitMinutes).toBe(4);
+    expect(con.walkFromStop.approximate).toBe(true);
+    expect(con.walkMeters).toBe(420 + con.walkFromStop.meters);
+  });
+
+  it('usa los metros reales del destino en la llegada', () => {
+    const data = horarios();
+    const con = planTrips(data, pt(0, 0), pt(4000, -200), miercoles(10, 0), {
+      walks: { toDestination: { P3: 800 } },
+    })[0];
+    expect(con.walkFromStop).toEqual({ meters: 800, minutes: 10, approximate: false });
+    expect(con.arrivalMinutes).toBe(10 * 60 + 20 + 10);
+  });
+
+  it('sin walks sale igual que antes', () => {
+    const data = horarios();
+    const a = planTrips(data, pt(0, -200), pt(4000, 0), miercoles(10, 0));
+    const b = planTrips(data, pt(0, -200), pt(4000, 0), miercoles(10, 0), { walks: {} });
+    expect(b).toEqual(a);
+  });
+});
+
+describe('candidateStops', () => {
+  it('coincide con las paradas que usa planTrips', () => {
+    const data = mundo();
+    poner(data, '1', 'lab', [['10:10', '10:18', '10:28']]);
+    const origen = pt(0, -200);
+    const cand = candidateStops(data, origen).map((s) => s.code);
+    expect(cand).toContain('P1');
+    // Con el viaje de P1 a P3, el tramo andando usa una de las candidatas.
+    const op = planTrips(data, origen, pt(4000, 0), miercoles(10, 0))[0];
+    expect(cand).toContain(op.legs[0].from.code);
+    // Sin ninguna en el radio, se usan las 3 más cercanas.
+    expect(candidateStops(data, pt(0, 50000))).toHaveLength(3);
+    // Respeta las opciones.
+    expect(candidateStops(data, origen, { maxStopsPerEnd: 1 })).toHaveLength(1);
+  });
+});
+
+describe('isApproximate', () => {
+  const real = { meters: 100, minutes: 2, approximate: false };
+  const estim = { meters: 100, minutes: 2, approximate: true };
+  const base = { walkToStop: real, walkFromStop: real, transferWalk: null } as unknown as RouteOption;
+  it('es false solo si todos los tramos son reales', () => {
+    expect(isApproximate(base)).toBe(false);
+    expect(isApproximate({ ...base, walkToStop: estim })).toBe(true);
+    expect(isApproximate({ ...base, walkFromStop: estim })).toBe(true);
+    expect(isApproximate({ ...base, transferWalk: estim })).toBe(true);
+    expect(isApproximate({ ...base, transferWalk: real })).toBe(false);
   });
 });
