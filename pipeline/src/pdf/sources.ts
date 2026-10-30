@@ -22,19 +22,25 @@ export const MIN_PDF_SOURCES = 54;
 
 const DAY_TYPES: Record<string, DayType> = { LAB: 'lab', SAB: 'sab', FES: 'fes' };
 
-/** Busca todos los enlaces LINEA_<n>[_NJ]_{LAB,SAB,FES}.pdf (sin repetidos) y los devuelve con URL absoluta. */
+/** Busca todos los enlaces LINEA_<n>[_NJ]_{LAB,SAB,FES}.pdf (un solo PDF por nombre de archivo) y los devuelve con URL absoluta. */
 export function parsePdfSources(html: string, baseUrl: string): PdfSource[] {
   const $ = cheerio.load(html);
   const found = new Map<string, PdfSource>();
   $('a[href]').each((_, el) => {
     const href = $(el).attr('href') ?? '';
     const path = href.split(/[?#]/)[0];
-    const file = decodeURIComponent(path.slice(path.lastIndexOf('/') + 1));
+    let file: string;
+    try {
+      file = decodeURIComponent(path.slice(path.lastIndexOf('/') + 1));
+    } catch {
+      return; // enlace con un % mal escrito: lo saltamos
+    }
     const match = /^LINEA_(\d+)(?:_NJ)?_(LAB|SAB|FES)\.pdf$/i.exec(file);
     if (!match) return;
+    // Si el mismo archivo está enlazado dos veces (por ejemplo desde dos carpetas), gana el primero.
+    if (found.has(file)) return;
     const url = new URL(href, baseUrl).toString();
-    if (found.has(url)) return;
-    found.set(url, {
+    found.set(file, {
       file,
       url,
       lineId: match[1],

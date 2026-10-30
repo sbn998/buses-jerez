@@ -31,6 +31,18 @@ describe('parsePdfSources', () => {
     const dup = '<a href="/x/LINEA_1_LAB.pdf">a</a><a href="/x/LINEA_1_LAB.pdf">b</a>';
     expect(parsePdfSources(dup, INFO_URL)).toHaveLength(1);
   });
+
+  it('keeps only the first link when the same file is linked from two folders', () => {
+    const dup = '<a href="/a/LINEA_1_LAB.pdf">a</a><a href="/b/LINEA_1_LAB.pdf">b</a>';
+    const sources = parsePdfSources(dup, INFO_URL);
+    expect(sources).toHaveLength(1);
+    expect(sources[0].url).toContain('/a/');
+  });
+
+  it('skips links with a broken percent escape instead of crashing', () => {
+    const bad = '<a href="/x/LINEA_1_%E0%A4%A_LAB.pdf">a</a><a href="/x/LINEA_2_LAB.pdf">b</a>';
+    expect(parsePdfSources(bad, INFO_URL).map((s) => s.file)).toEqual(['LINEA_2_LAB.pdf']);
+  });
 });
 
 describe('parseStartDate', () => {
@@ -57,6 +69,18 @@ describe('extractJpeg', () => {
       Buffer.from('%PDF-1.4\n1 0 obj\n<< /Filter /DCTDecode >>\nstream\n', 'latin1'),
       Buffer.from(jpeg),
       Buffer.from('\nendstream\nendobj\n%%EOF', 'latin1'),
+    ]);
+    expect([...extractJpeg(pdf)]).toEqual(jpeg);
+  });
+
+  it('returns the largest JPEG when the PDF has a thumbnail too', () => {
+    const small = [0xff, 0xd8, 0xaa, 0xff, 0xd9];
+    const pdf = Buffer.concat([
+      Buffer.from('%PDF-1.4\nstream\n', 'latin1'),
+      Buffer.from(small),
+      Buffer.from('\nendstream\nstream\n', 'latin1'),
+      Buffer.from(jpeg),
+      Buffer.from('\nendstream\n%%EOF', 'latin1'),
     ]);
     expect([...extractJpeg(pdf)]).toEqual(jpeg);
   });
