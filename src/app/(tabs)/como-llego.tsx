@@ -81,6 +81,8 @@ export default function ComoLlego() {
   // Distancias reales por calles, junto con el origen y el destino para los que se pidieron.
   const [walkState, setWalkState] = useState<{
     key: string;
+    // Punto de salida para el que se pidió `fromOrigin`: si te alejas más de 50 m, ya no vale.
+    from: LatLon;
     to: LatLon;
     walks: PlannerWalks;
   } | null>(null);
@@ -142,8 +144,9 @@ export default function ComoLlego() {
   // Pide las distancias reales andando a las paradas cercanas al origen y al destino.
   // - Si cambia el destino o el origen elegido: se piden las dos cosas al momento.
   // - Si solo tu ubicación se mueve más de 50 m: se pide solo el lado del origen, y como mucho una vez
-  //   por minuto. Mientras llega, se siguen enseñando las distancias anteriores (sin parpadeos).
-  //   Si el movimiento llega antes de tiempo, se espera: el reloj de cada minuto vuelve a probar.
+  //   por minuto. Si el movimiento llega antes de tiempo, un temporizador lo pide justo cuando
+  //   se cumple el minuto (el tic del reloj de cada minuto nunca pide nada).
+  //   Las distancias del origen de una posición vieja no se enseñan como reales (ver `walks`).
   // Con tu ubicación (GPS) se pide con store:false para que el Worker no la guarde.
   // Un punto fuera de Jerez no se pregunta (el Worker daría 400).
   useEffect(() => {
@@ -163,20 +166,29 @@ export default function ComoLlego() {
     if (sameTrip) {
       // Mismo origen y destino: solo cuenta que tu ubicación se haya movido de verdad.
       if (distanceMeters(last.from, from) <= REFETCH_METERS) return;
-      // Si la petición completa aún no ha vuelto, o es demasiado pronto, se prueba en el próximo minuto.
-      if (fullPending.current || Date.now() - last.at < ORIGIN_REFETCH_MS) return;
-      lastWalkRequest.current = { key: originKey, from, to, at: Date.now() };
-      const id = ++walkId.current;
-      fromWalks().then((fromOrigin) => {
-        if (id !== walkId.current) return;
-        // Se cambia solo el lado del origen; el del destino se conserva.
-        setWalkState((prev) => {
-          const toDestination = prev && prev.key === originKey && prev.to === to ? prev.walks.toDestination : undefined;
-          if (!fromOrigin && !toDestination) return null;
-          return { key: originKey, to, walks: { fromOrigin: fromOrigin ?? undefined, toDestination } };
+      // Pide solo el lado del origen y conserva el del destino.
+      const refetchOrigin = () => {
+        if (fullPending.current) return;
+        lastWalkRequest.current = { key: originKey, from, to, at: Date.now() };
+        const id = ++walkId.current;
+        fromWalks().then((fromOrigin) => {
+          if (id !== walkId.current) return;
+          setWalkState((prev) => {
+            const toDestination = prev && prev.key === originKey && prev.to === to ? prev.walks.toDestination : undefined;
+            if (!fromOrigin && !toDestination) return null;
+            return { key: originKey, from, to, walks: { fromOrigin: fromOrigin ?? undefined, toDestination } };
+          });
         });
-      });
-      return;
+      };
+      const remaining = ORIGIN_REFETCH_MS - (Date.now() - last.at);
+      if (remaining <= 0 && !fullPending.current) {
+        refetchOrigin();
+        return;
+      }
+      // Demasiado pronto (o la petición completa sigue en curso): se pide cuando se cumpla el minuto.
+      // Si algo cambia antes (te mueves, otro destino, sales de la pantalla), este aviso se cancela.
+      const timer = setTimeout(refetchOrigin, Math.max(remaining, 0));
+      return () => clearTimeout(timer);
     }
 
     lastWalkRequest.current = { key: originKey, from, to, at: Date.now() };
@@ -194,18 +206,23 @@ export default function ComoLlego() {
       if (!fromOrigin && !toDestination) return;
       setWalkState({
         key: originKey,
+        from,
         to,
         walks: { fromOrigin: fromOrigin ?? undefined, toDestination: toDestination ?? undefined },
       });
     });
-    // `now` solo sirve para volver a probar cada minuto un movimiento que quedó pendiente.
-  }, [ready, originKey, from, to, data, now]);
+  }, [ready, originKey, from, to, data]);
 
   // Las distancias reales solo valen para el origen y el destino con los que se pidieron.
-  const walks = useMemo(
-    () => (walkState && walkState.key === originKey && walkState.to === to ? walkState.walks : undefined),
-    [walkState, originKey, to],
-  );
+  // Si tu ubicación se ha movido más de 50 m desde que se pidió el origen, esas distancias son de otra
+  // posición: se quita ese lado (se usa la estimación, "aproximadas") hasta que lleguen las nuevas.
+  const walks = useMemo(() => {
+    if (!walkState || walkState.key !== originKey || walkState.to !== to) return undefined;
+    if (from && distanceMeters(walkState.from, from) > REFETCH_METERS) {
+      return walkState.walks.toDestination ? { toDestination: walkState.walks.toDestination } : undefined;
+    }
+    return walkState.walks;
+  }, [walkState, originKey, to, from]);
 
   // Las opciones de bus de hoy (se recalculan solo si cambian los puntos, los datos o el minuto).
   const options = useMemo(

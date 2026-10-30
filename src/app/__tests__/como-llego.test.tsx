@@ -373,18 +373,53 @@ describe('pantalla Cómo llego', () => {
       expect(mockWalks).toHaveBeenCalledTimes(3);
     });
 
-    it('dos movimientos de más de 50 m en menos de 60 s solo piden una vez; el segundo espera al minuto', async () => {
+    it('un movimiento de más de 50 m antes de 60 s se pide justo a los 60 s, no en el tic del minuto', async () => {
+      const view = await renderScreen();
+      await pickDestination(lejos);
+      expect(mockWalks).toHaveBeenCalledTimes(2);
+      // Desde aquí, el tiempo es falso (setTimeout y Date).
+      jest.restoreAllMocks();
+      jest.useFakeTimers({ now: clock + 10_000, doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask', 'setInterval', 'clearInterval'] });
+      try {
+        // Se simula que la petición se hizo "ahora": se mueve a los 10 s.
+        mockLocation = { ...mockLocation, coords: { lat: 36.68 + 80 / 111_195, lon: -6.13 } };
+        await view.rerender(
+          <DataProvider value={{ data: screenData, source: 'bundled', checkedAt: null }}>
+            <ComoLlego />
+          </DataProvider>,
+        );
+        // La petición completa se hizo con el reloj real; el temporizador cuenta desde su hora.
+        await act(async () => {
+          jest.advanceTimersByTime(30_000);
+        });
+        expect(mockWalks).toHaveBeenCalledTimes(2); // aún no
+        // Un tic del minuto (nuevo `now`) no pide nada.
+        mockNow = new Date(mockNow.getTime() + 60_000);
+        await view.rerender(
+          <DataProvider value={{ data: screenData, source: 'bundled', checkedAt: null }}>
+            <ComoLlego />
+          </DataProvider>,
+        );
+        expect(mockWalks).toHaveBeenCalledTimes(2);
+        await act(async () => {
+          jest.advanceTimersByTime(35_000); // ya han pasado más de 60 s desde la petición
+        });
+        expect(mockWalks).toHaveBeenCalledTimes(3);
+        expect(mockWalks.mock.calls[2][2]).toBe('from');
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('dos movimientos de más de 50 m en menos de 60 s solo piden una vez', async () => {
       const view = await renderScreen();
       await pickDestination(lejos);
       await moveTo(view, 80, 61);
       expect(mockWalks).toHaveBeenCalledTimes(3);
-      await moveTo(view, 200, 10); // demasiado pronto
+      await moveTo(view, 200, 10); // demasiado pronto: queda programado, no se pide
       expect(mockWalks).toHaveBeenCalledTimes(3);
-      await moveTo(view, 200, 30); // sigue siendo pronto (40 s)
+      await moveTo(view, 300, 30); // sigue siendo pronto (40 s)
       expect(mockWalks).toHaveBeenCalledTimes(3);
-      await moveTo(view, 200, 20); // ya pasaron 60 s desde la última petición
-      expect(mockWalks).toHaveBeenCalledTimes(4);
-      expect(mockWalks.mock.calls[3][2]).toBe('from');
     });
 
     it('un movimiento antes de que vuelva la primera petición espera, y no se pierde', async () => {
@@ -399,18 +434,24 @@ describe('pantalla Cómo llego', () => {
       expect(mockWalks).toHaveBeenCalledTimes(3);
     });
 
-    it('al moverte no parpadea a "aproximadas" y se conservan las distancias del destino', async () => {
+    it('al moverte 80 m dentro de los 60 s, el origen pasa a "aproximadas" (conservando el destino) hasta la nueva respuesta', async () => {
       mockWalks.mockImplementation(realWalks);
       const view = await renderScreen();
       await pickDestination(lejos);
       await screen.findAllByText('Distancias a pie por calles');
-      // La siguiente petición del origen queda colgada.
+      expect(screen.getAllByText(/^Súbete en Parada Origen a las 10:05 \(a 70 m\)/)).toHaveLength(2);
+      await moveTo(view, 80, 10); // dentro de la ventana de 60 s: aún no se pide
+      expect(mockWalks).toHaveBeenCalledTimes(2);
+      // Los 70 m eran de la posición vieja: ya no se enseñan como reales.
+      expect(screen.queryByText(/\(a 70 m\)/)).toBeNull();
+      expect(screen.getAllByText('Distancias aproximadas')).toHaveLength(2);
+      expect(screen.getByText(/\(a 44 m del destino\)/)).toBeTruthy(); // el destino se conserva
+      // Pasa el minuto: se pide el origen y, cuando llega, vuelven las distancias por calles.
       let answer!: (v: Record<string, number>) => void;
       mockWalks.mockImplementationOnce(() => new Promise((r) => (answer = r)));
-      await moveTo(view, 80, 61);
+      await moveTo(view, 85, 51);
       expect(mockWalks).toHaveBeenCalledTimes(3);
-      expect(screen.getAllByText('Distancias a pie por calles')).toHaveLength(2);
-      expect(screen.queryByText('Distancias aproximadas')).toBeNull();
+      expect(screen.getAllByText('Distancias aproximadas')).toHaveLength(2);
       await act(async () => answer({ A: 95 }));
       expect(screen.getAllByText('Distancias a pie por calles')).toHaveLength(2);
       expect(screen.getAllByText(/^Súbete en Parada Origen a las 10:05 \(a 95 m\)/)).toHaveLength(2);
