@@ -50,6 +50,39 @@ export function nextDepartures(
     .slice(0, count);
 }
 
+/** Una entrada de la leyenda de notas: la letra, el texto oficial y, si es una retirada, su parada final. */
+export interface NoteLegendEntry {
+  mark: string;
+  text: string;
+  endsAt?: string;
+}
+
+/**
+ * Las notas de los PDF (por ejemplo "a: Retirada en Moreno Mendoza") para una parada y un tipo de día:
+ * `marks` dice qué letra lleva cada hora y `legend` trae solo las letras que salen en esa parada.
+ * No traduce nada: el texto que se ve lo monta la pantalla. Sin notas, todo vacío.
+ */
+export function notesAt(
+  line: Line,
+  day: DayType,
+  stopCode: string,
+): { marks: Record<TimeOfDay, string>; legend: NoteLegendEntry[] } {
+  const marks: Record<TimeOfDay, string> = {};
+  const legend: NoteLegendEntry[] = [];
+  for (const note of line.notes?.[day] ?? []) {
+    const time = note.times[stopCode];
+    if (!time) continue;
+    marks[time] = note.mark;
+    if (!legend.some((e) => e.mark === note.mark)) {
+      const entry: NoteLegendEntry = { mark: note.mark, text: note.text };
+      if (note.endsAt) entry.endsAt = note.endsAt;
+      legend.push(entry);
+    }
+  }
+  legend.sort((a, b) => a.mark.localeCompare(b.mark));
+  return { marks, legend };
+}
+
 /** El destino ("headsign") del sentido de la línea que contiene la parada. */
 export function headsignFor(line: Line, stopCode: string): string | null {
   const direction = line.directions.find((dir) => dir.stopCodes.includes(stopCode));

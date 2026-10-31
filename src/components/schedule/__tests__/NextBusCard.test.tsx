@@ -37,3 +37,12 @@ describe('NextBusCard', () => {
     expect(screen.queryByText('en 0 min')).toBeNull();
   });
 });
+
+describe('NextBusCard con nota', () => {
+  it('muestra la nota del próximo bus debajo de la hora', async () => {
+    await render(
+      <NextBusCard departures={[{ time: '21:38', minutesUntil: 5 }]} headsign={null} note="Solo hasta Moreno Mendoza" />,
+    );
+    expect(screen.getByText('Solo hasta Moreno Mendoza')).toBeTruthy();
+  });
+});

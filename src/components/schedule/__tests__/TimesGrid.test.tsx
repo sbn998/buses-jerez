@@ -31,3 +31,38 @@ describe('TimesGrid', () => {
     expect(screen.getByText('Sin servicio este día')).toBeTruthy();
   });
 });
+
+describe('TimesGrid con notas', () => {
+  const notes = {
+    marks: { '21:38': 'a', '22:10': 'b' },
+    legend: [
+      { mark: 'a', text: 'Retirada en Moreno Mendoza', endsAt: '302' },
+      { mark: 'b', text: 'Paso por Parque Tecnológico' },
+    ],
+  };
+  const stopNames = { '302': 'Moreno Mendoza' };
+
+  it('pone la letra junto a la hora y la leyenda debajo', async () => {
+    await render(<TimesGrid times={['21:38', '22:10']} highlightNext={false} notes={notes} stopNames={stopNames} />);
+    expect(screen.getByText('a')).toBeTruthy();
+    expect(screen.getByText('a: Solo hasta Moreno Mendoza')).toBeTruthy();
+    expect(screen.getByLabelText('21:38, solo hasta Moreno Mendoza')).toBeTruthy();
+  });
+
+  it('una nota sin endsAt muestra su texto tal cual', async () => {
+    await render(<TimesGrid times={['21:38', '22:10']} highlightNext={false} notes={notes} stopNames={stopNames} />);
+    expect(screen.getByText('b: Paso por Parque Tecnológico')).toBeTruthy();
+  });
+
+  it('en inglés dice Only to', async () => {
+    initI18n('en');
+    await render(<TimesGrid times={['21:38']} highlightNext={false} notes={notes} stopNames={stopNames} />);
+    expect(screen.getByText('a: Only to Moreno Mendoza')).toBeTruthy();
+    initI18n('es');
+  });
+
+  it('works without notes', async () => {
+    await render(<TimesGrid times={['21:38']} highlightNext={false} />);
+    expect(screen.queryByTestId('notes-legend')).toBeNull();
+  });
+});

@@ -31,6 +31,7 @@ const en: Textos = {
     noMoreToday: 'No more buses today',
     noService: 'No service this day',
     allTimes: 'All times',
+    onlyTo: 'Only to {{stop}}',
     today: 'Today',
     dayLab: 'Weekday',
     daySab: 'Saturday',

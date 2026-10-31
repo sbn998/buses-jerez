@@ -133,6 +133,18 @@ describe('planTrips', () => {
     expect(planTrips(data, pt(4000, 0), pt(0, 0), miercoles(10, 0))).toEqual([]);
   });
 
+  it('does not ride a trip past the stop where it is withdrawn', () => {
+    const data = mundo();
+    // El de las 10:10 se retira en P2 (sus horas siguientes vienen a null desde el pipeline).
+    poner(data, '1', 'lab', [
+      ['10:10', '10:18', null],
+      ['10:30', '10:40', '10:50'],
+    ]);
+    const res = planTrips(data, pt(0, 0), pt(4000, 0), miercoles(10, 0));
+    expect(res.every((op) => op.legs[0].departure !== '10:10')).toBe(true);
+    expect(res[0]?.legs[0].departure).toBe('10:30');
+  });
+
   it('skips trips that start mid-route', () => {
     const data = mundo();
     poner(data, '1', 'lab', [

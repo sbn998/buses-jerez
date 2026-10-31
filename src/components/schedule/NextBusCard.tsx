@@ -12,9 +12,11 @@ import { formatMinutes } from '@/lib/format';
 interface Props {
   departures: { time: TimeOfDay; minutesUntil: number }[];
   headsign: string | null;
+  /** Nota del próximo bus, ya traducida (por ejemplo "Solo hasta Moreno Mendoza"). */
+  note?: string;
 }
 
-export function NextBusCard({ departures, headsign }: Props) {
+export function NextBusCard({ departures, headsign, note }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const [first, ...others] = departures;
@@ -32,6 +34,7 @@ export function NextBusCard({ departures, headsign }: Props) {
               {formatMinutes(first.minutesUntil, t)}
             </ThemedText>
           </View>
+          {note ? <ThemedText type="smallBold">{note}</ThemedText> : null}
           {others.length > 0 ? (
             <View style={styles.others}>
               <ThemedText type="small" themeColor="textSecondary">

@@ -13,14 +13,14 @@ import { LineBadge } from '@/components/schedule/LineBadge';
 import { LinePicker } from '@/components/schedule/LinePicker';
 import { NextBusCard } from '@/components/schedule/NextBusCard';
 import { StopPicker } from '@/components/schedule/StopPicker';
-import { TimesGrid } from '@/components/schedule/TimesGrid';
+import { noteLabel, TimesGrid } from '@/components/schedule/TimesGrid';
 import { ThemedText } from '@/components/themed-text';
 import { BottomTabInset, Spacing } from '@/constants/theme';
 import { useData } from '@/data/DataProvider';
 import { useNow } from '@/hooks/use-now';
 import { useTheme } from '@/hooks/use-theme';
 import { findLineStop } from '@/lib/lineStop';
-import { calendarDays, directionLabel, nextDepartures, toDateKey } from '@/lib/schedule';
+import { calendarDays, directionLabel, nextDepartures, notesAt, toDateKey } from '@/lib/schedule';
 import { useFavorites } from '@/stores/favorites';
 
 export default function Horarios() {
@@ -101,6 +101,12 @@ export default function Horarios() {
     const isFavorite = favorites.some((f) => f.lineId === favorite.lineId && f.stopCode === favorite.stopCode);
     const times = line.timesByStop[stop.code]?.[selectedDay.dayType] ?? [];
     const headsign = directionLabel(line, stop.code);
+    // Notas de los PDF (por ejemplo "Solo hasta Moreno Mendoza") para esta parada y este día.
+    const notes = notesAt(line, selectedDay.dayType, stop.code);
+    const stopNames = Object.fromEntries(line.stopCodes.map((c) => [c, data.stops[c]?.name ?? c]));
+    const departures = nextDepartures(times, now, 4);
+    const firstMark = departures[0] ? notes.marks[departures[0].time] : undefined;
+    const firstEntry = notes.legend.find((e) => e.mark === firstMark);
     content = (
       <>
         <View style={styles.row}>
@@ -132,9 +138,15 @@ export default function Horarios() {
         {selectedDay.holiday ? (
           <ThemedText type="smallBold">{selectedDay.holiday.name}</ThemedText>
         ) : null}
-        {isToday ? <NextBusCard departures={nextDepartures(times, now, 4)} headsign={headsign} /> : null}
+        {isToday ? (
+          <NextBusCard
+            departures={departures}
+            headsign={headsign}
+            note={firstEntry ? noteLabel(firstEntry, stopNames, t) : undefined}
+          />
+        ) : null}
         <ThemedText type="smallBold">{t('schedule.allTimes')}</ThemedText>
-        <TimesGrid times={times} now={now} highlightNext={isToday} />
+        <TimesGrid times={times} now={now} highlightNext={isToday} notes={notes} stopNames={stopNames} />
       </>
     );
   }

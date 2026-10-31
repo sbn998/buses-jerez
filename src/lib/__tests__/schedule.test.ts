@@ -8,6 +8,7 @@ import {
   headsignFor,
   holidayFor,
   nextDepartures,
+  notesAt,
 } from '@/lib/schedule';
 
 describe('dayTypeFor', () => {
@@ -84,5 +85,32 @@ describe('calendarDays', () => {
     expect(days[3].dayType).toBe('sab');
     expect(days[4].dayType).toBe('fes');
     expect(days[0].key).toBe('2026-10-28');
+  });
+});
+
+describe('notesAt', () => {
+  const line = {
+    id: '1',
+    stopCodes: ['343', '302', '418'],
+    notes: {
+      lab: [
+        { mark: 'a', text: 'Retirada en Moreno Mendoza', endsAt: '302', times: { '343': '21:38', '302': '21:50' } },
+        { mark: 'b', text: 'Paso por Parque Tecnológico', times: { '418': '07:10' } },
+      ],
+      sab: [],
+      fes: [],
+    },
+  } as unknown as Line;
+
+  it('marks the time at that stop and returns only the letters used there', () => {
+    expect(notesAt(line, 'lab', '343')).toEqual({
+      marks: { '21:38': 'a' },
+      legend: [{ mark: 'a', text: 'Retirada en Moreno Mendoza', endsAt: '302' }],
+    });
+  });
+
+  it('is empty without notes', () => {
+    expect(notesAt(line, 'sab', '343')).toEqual({ marks: {}, legend: [] });
+    expect(notesAt({ ...line, notes: undefined }, 'lab', '343')).toEqual({ marks: {}, legend: [] });
   });
 });

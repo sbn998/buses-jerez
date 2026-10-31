@@ -26,6 +26,7 @@ const es = {
     noMoreToday: 'No quedan buses hoy',
     noService: 'Sin servicio este día',
     allTimes: 'Todas las horas',
+    onlyTo: 'Solo hasta {{stop}}',
     today: 'Hoy',
     dayLab: 'Laborable',
     daySab: 'Sábado',
