@@ -1,0 +1,41 @@
+# Qué NO se sube a EAS Build (la nube de Expo que compila la app).
+# Si existe este archivo, EAS lo usa en lugar de .gitignore. Hace falta porque EAS no
+# entiende la "lista blanca" de .gitignore (/* con excepciones !/carpeta/) y dejaba
+# fuera src/ y assets/. Aquí se escribe al revés: solo lo que hay que excluir.
+
+# Partes del proyecto que no forman parte de la app.
+/pipeline/
+/worker/
+/docs/
+/.github/
+/.superpowers/
+/.claude/
+
+# Generados o locales.
+node_modules/
+.expo/
+dist/
+web-build/
+out/
+/android/
+/ios/
+*.tsbuildinfo
+*.log
+.DS_Store
+Thumbs.db
+
+# Secretos y claves: nunca.
+.env
+.env.*
+*.key
+*.pem
+*.p8
+*.p12
+*.jks
+*.keystore
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
+credentials.json
+*secret*
+*credential*

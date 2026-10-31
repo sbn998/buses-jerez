@@ -11,6 +11,7 @@
 !/assets/
 !/scripts/
 !/eas.json
+!/.easignore
 !/src/
 !/docs/
 !/README.md
