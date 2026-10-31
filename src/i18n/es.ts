@@ -136,6 +136,12 @@ const es = {
     routeTitle: 'Algo ha fallado en esta pantalla',
     retry: 'Reintentar',
   },
+  notices: {
+    expired: 'Los horarios publicados eran válidos hasta el {{date}}. Puede que no estén al día.',
+    change: 'El {{date}} empieza un horario nuevo. Revisa tus horas habituales.',
+    dontShowAgain: 'No volver a mostrar',
+    close: 'Cerrar aviso',
+  },
   options: {
     title: 'Opciones',
     open: 'Abrir opciones',

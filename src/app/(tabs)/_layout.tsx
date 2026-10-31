@@ -4,7 +4,9 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Tabs } from 'expo-router';
 import type { ComponentProps } from 'react';
 import { useTranslation } from 'react-i18next';
+import { View } from 'react-native';
 
+import { AppNoticeBanner } from '@/components/NoticeBanner';
 import { OptionsButton } from '@/components/OptionsButton';
 
 type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -26,7 +28,15 @@ export default function TabsLayout() {
         headerShown: true,
         // Engranaje a la derecha de la cabecera de cada pestaña: abre Opciones.
         headerRight: () => <OptionsButton />,
-      }}>
+      }}
+      // Los avisos (horario caducado, cambio próximo…) salen arriba de cada pestaña, bajo la cabecera.
+      // Líneas no tiene cabecera aquí (lleva la suya dentro), así que allí no se pone para no tapar la barra de estado.
+      screenLayout={({ children, options }) => (
+        <View style={{ flex: 1 }}>
+          {options.headerShown === false ? null : <AppNoticeBanner />}
+          {children}
+        </View>
+      )}>
       {PESTANAS.map((p) => (
         <Tabs.Screen
           key={p.name}

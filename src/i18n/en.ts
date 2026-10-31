@@ -141,6 +141,12 @@ const en: Textos = {
     routeTitle: 'Something went wrong on this screen',
     retry: 'Try again',
   },
+  notices: {
+    expired: 'The published timetables were valid until {{date}}. They may be out of date.',
+    change: 'A new timetable starts on {{date}}. Check your usual times.',
+    dontShowAgain: "Don't show again",
+    close: 'Close notice',
+  },
   options: {
     title: 'Options',
     open: 'Open options',
